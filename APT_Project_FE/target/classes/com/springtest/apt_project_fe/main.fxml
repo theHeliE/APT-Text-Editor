@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import com.jfoenix.controls.JFXButton?>
+<?import com.jfoenix.controls.JFXTextArea?>
+<?import com.jfoenix.controls.JFXToolbar?>
+<?import javafx.scene.layout.AnchorPane?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.text.Font?>
+<?import javafx.scene.text.Text?>
+
+
+<AnchorPane prefHeight="611.0" prefWidth="908.0" style="-fx-background-color: #525251;" xmlns="http://javafx.com/javafx/23.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.springtest.apt_project_fe.HelloApplication">
+   <children>
+      <JFXToolbar prefHeight="35.0" prefWidth="1015.0" style="-fx-background-color: black;">
+         <center>
+            <Text fill="WHITE" strokeType="OUTSIDE" strokeWidth="0.0" text="DocsHub" textAlignment="RIGHT" wrappingWidth="135.13671875" BorderPane.alignment="CENTER">
+               <font>
+                  <Font name="Century Gothic" size="29.0" />
+               </font>
+            </Text>
+         </center>
+      </JFXToolbar>
+      <JFXTextArea layoutX="412.0" layoutY="316.0" prefHeight="36.0" prefWidth="192.0" promptText="Enter Session ID" style="-fx-background-color: white;" />
+      <JFXButton layoutX="482.0" layoutY="372.0" prefHeight="30.0" prefWidth="52.0" style="-fx-background-color: White;" text="JOIN" />
+      <Text fill="WHITE" layoutX="340.0" layoutY="230.0" strokeType="OUTSIDE" strokeWidth="0.0" text="Welcome to DocsHub!" textAlignment="CENTER" wrappingWidth="336.13671875">
+         <font>
+            <Font name="Century Gothic" size="30.0" />
+         </font>
+      </Text>
+      <Text fill="WHITE" layoutX="353.0" layoutY="286.0" strokeType="OUTSIDE" strokeWidth="0.0" text="Enter Session ID to continue" textAlignment="CENTER" wrappingWidth="310.13671875">
+         <font>
+            <Font name="Century Gothic" size="20.0" />
+         </font>
+      </Text>
+   </children>
+</AnchorPane>
