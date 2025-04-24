@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import com.jfoenix.controls.JFXButton?>
+<?import com.jfoenix.controls.JFXToolbar?>
+<?import javafx.scene.layout.AnchorPane?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.text.Font?>
+<?import javafx.scene.text.Text?>
+
+
+<AnchorPane prefHeight="702.0" prefWidth="934.0" xmlns="http://javafx.com/javafx/23.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.springtest.apt_project_fe.SceneController">
+   <children>
+      <JFXButton layoutX="29.0" layoutY="50.0" onAction="#switchToSceneMain" prefHeight="30.0" prefWidth="68.0" style="-fx-background-color: #545454;" text="Go Back" textFill="WHITE">
+         <font>
+            <Font name="Dubai Regular" size="14.0" />
+         </font>
+      </JFXButton>
+      <JFXToolbar layoutY="-4.0" prefHeight="36.0" prefWidth="1020.0" style="-fx-background-color: black;">
+         <center>
+            <Text fill="WHITE" strokeType="OUTSIDE" strokeWidth="0.0" text="DocsHub" textAlignment="RIGHT" wrappingWidth="135.13671875" BorderPane.alignment="CENTER">
+               <font>
+                  <Font name="Century Gothic" size="29.0" />
+               </font>
+            </Text>
+         </center>
+      </JFXToolbar>
+   </children>
+</AnchorPane>
