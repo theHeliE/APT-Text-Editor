@@ -30,4 +30,18 @@ public class SceneController {
         stage.setScene(scene);
         stage.show();
     }
+    public void switchToSceneBrowser(ActionEvent event) throws IOException {
+        root = FXMLLoader.load(getClass().getResource("browser.fxml"));
+        stage = (Stage)((Node)event.getSource()).getScene().getWindow();
+        scene = new Scene(root);
+        stage.setScene(scene);
+        stage.show();
+    }
+    public void switchToSceneFileViewer(ActionEvent event) throws IOException {
+        root = FXMLLoader.load(getClass().getResource("FileViewer.fxml"));
+        stage = (Stage)((Node)event.getSource()).getScene().getWindow();
+        scene = new Scene(root);
+        stage.setScene(scene);
+        stage.show();
+    }
 }

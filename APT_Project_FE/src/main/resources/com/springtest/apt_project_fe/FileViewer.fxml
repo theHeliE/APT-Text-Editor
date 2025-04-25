@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.TextArea?>
+<?import javafx.scene.layout.AnchorPane?>
+
+<AnchorPane xmlns="http://javafx.com/javafx"
+            xmlns:fx="http://javafx.com/fxml"
+            fx:controller="com.springtest.apt_project_fe.FileViewerController"
+            prefWidth="600.0" prefHeight="400.0">
+
+    <children>
+        <TextArea fx:id="textArea"
+                  editable="false"
+                  wrapText="true"
+                  AnchorPane.topAnchor="0"
+                  AnchorPane.leftAnchor="0"
+                  AnchorPane.rightAnchor="0"
+                  AnchorPane.bottomAnchor="0"/>
+    </children>
+</AnchorPane>

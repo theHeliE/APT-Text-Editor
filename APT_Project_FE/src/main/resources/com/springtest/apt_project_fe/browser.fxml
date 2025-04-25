@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.layout.AnchorPane?>
+
+<AnchorPane xmlns="http://javafx.com/javafx"
+            xmlns:fx="http://javafx.com/fxml"
+            fx:controller="com.springtest.apt_project_fe.Browser"
+            prefHeight="400.0" prefWidth="600.0">
+
+    <!-- Browse button -->
+    <Button fx:id="browseButton"
+            text="Browse..."
+            layoutX="20.0" layoutY="20.0"
+            onAction="#openFileExplorer" />
+
+</AnchorPane>

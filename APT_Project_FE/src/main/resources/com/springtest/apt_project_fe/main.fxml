@@ -41,7 +41,7 @@
             <Font name="Century Gothic" size="20.0" />
          </font>
       </Text>
-      <JFXButton layoutX="464.0" layoutY="366.0" prefHeight="36.0" prefWidth="86.0" style="-fx-background-color: #545454;" text="Browse..." textFill="WHITE">
+      <JFXButton layoutX="464.0" layoutY="366.0" onAction="#switchToSceneBrowser" prefHeight="36.0" prefWidth="86.0" style="-fx-background-color: #545454;" text="Browse..." textFill="WHITE">
          <font>
             <Font size="14.0" />
          </font>
