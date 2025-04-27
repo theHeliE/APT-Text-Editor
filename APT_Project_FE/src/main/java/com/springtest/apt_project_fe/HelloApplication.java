@@ -5,6 +5,7 @@ import javafx.fxml.FXMLLoader;
 import javafx.scene.Scene;
 import javafx.scene.image.Image;
 import javafx.stage.Stage;
+import javafx.stage.StageStyle;
 
 import java.io.IOException;
 
@@ -14,6 +15,8 @@ public class HelloApplication extends Application {
         FXMLLoader fxmlLoader = new FXMLLoader(HelloApplication.class.getResource("main.fxml"));
         Scene scene = new Scene(fxmlLoader.load());
         stage.setTitle("DocsHub");
+        stage.initStyle(StageStyle.UNDECORATED);
+        stage.setResizable(false);
         Image fifi = new Image(getClass().getResource("/images/3ef3ef.jpg").toExternalForm());
         stage.getIcons().add(fifi);
         stage.setScene(scene);
