@@ -7,7 +7,7 @@ import javafx.scene.control.TextArea;
 import javafx.scene.layout.AnchorPane;
 import javafx.stage.Stage;
 
-public class FileViewerController {
+public class DocumentController {
     @FXML private TextArea textArea;
     @FXML
     private AnchorPane rootPane; // You must fx:id the root AnchorPane!

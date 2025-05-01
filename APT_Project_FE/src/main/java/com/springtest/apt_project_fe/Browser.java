@@ -6,7 +6,6 @@ import javafx.fxml.FXMLLoader;
 import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
-import javafx.scene.control.Button;
 import javafx.scene.layout.AnchorPane;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
@@ -46,12 +45,12 @@ public class Browser {
 
             // load viewer with absolute path
             FXMLLoader loader = new FXMLLoader(
-                    getClass().getResource("FileViewer.fxml")
+                    getClass().getResource("document.fxml")
             );
             root = loader.load();
 
             // inject content
-            FileViewerController viewer = loader.getController();
+            DocumentController viewer = loader.getController();
             viewer.setFileContent(content);
 
             // show in new window
