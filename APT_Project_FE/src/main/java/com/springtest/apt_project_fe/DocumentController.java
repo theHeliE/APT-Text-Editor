@@ -1,6 +1,7 @@
 package com.springtest.apt_project_fe;
 
 import com.jfoenix.controls.JFXButton;
+import com.jfoenix.controls.JFXTextArea;
 import com.springtest.apt_project_fe.model.CRDT;
 import javafx.application.Platform;
 import javafx.event.ActionEvent;
@@ -44,6 +45,9 @@ public class DocumentController {
             rootPane.getScene().getWindow().setY(event.getScreenY() - yOffset);
         });
 
+        textArea.caretPositionProperty().addListener((obs, oldVal, newVal) -> {
+            System.out.println("Caret position changed from " + oldVal + " to " + newVal);
+        });
     }
 
     public void setDocumentCode(String documentCode) {
@@ -118,9 +122,6 @@ public class DocumentController {
         alert.showAndWait();
     }
 
-
-
-
     // Populate the TextArea
     public void setFileContent(String content) {
         textArea.setText(content);
@@ -137,13 +138,10 @@ public class DocumentController {
                         // Do whatever you need with the CRDT object
                         Platform.runLater(() -> {
                             // Update UI with the CRDT data
-//                            String text = crdt.toString(); // Or however you extract text from CRDT
-//                            textArea.setText(text);
                             System.out.println("Document fetched successfully " + crdt.serialize());
 
                             String text = crdt.getText();
                             setFileContent(text);
-
                         });
                     } catch (Exception e) {
                         Platform.runLater(() -> {
@@ -164,6 +162,8 @@ public class DocumentController {
                     return null;
                 });
     }
+
+
 
     @FXML
     private void handleMinimize(ActionEvent event) {
