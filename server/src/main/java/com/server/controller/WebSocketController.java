@@ -14,9 +14,7 @@ import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.messaging.simp.annotation.SendToUser;
 import org.springframework.stereotype.Controller;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 
 /**
  * Controller that handles WebSocket communications for real-time document collaboration.
@@ -53,7 +51,10 @@ public class WebSocketController {
             // Prepare response with documentId and user info
             Map<String, Object> response = new HashMap<>();
             response.put("documentId", document.getId());
-            response.put("user", user);
+
+            response.put("userId", user.getId());
+            response.put("userColor", user.getColor());
+            response.put("isEditor", isEditor);
             
             // Notify other users that someone joined
             notifyUserListUpdate(document);
@@ -74,17 +75,18 @@ public class WebSocketController {
      */
     @MessageMapping("/document/{documentId}/get")
     @SendToUser("/queue/get")
-    public Map<String, Object> getDocumentData(@DestinationVariable String documentId) {
+    public List<Map<String, Object>> getDocumentData(@DestinationVariable String documentId) {
         Optional<Document> documentOpt = documentService.getDocumentById(documentId);
         
         if (documentOpt.isPresent()) {
             Document document = documentOpt.get();
-            Map<String, Object> response = new HashMap<>();
-            response.put("crdt", document.getCrdt().serialize());
-            return response;
+
+            return document.getCrdt().serialize();
         } else {
-            Map<String, Object> errorResponse = new HashMap<>();
-            errorResponse.put("error", "Document not found");
+            List<Map<String, Object>> errorResponse = new ArrayList<>();
+            Map<String,Object> errorMap = new HashMap<>();
+            errorMap.put("error", "Document not found");
+            errorResponse.add(errorMap);
             return errorResponse;
         }
     }
@@ -97,20 +99,18 @@ public class WebSocketController {
      */
     @MessageMapping("/document/{documentId}/users")
     @SendToUser("/queue/users")
-    public Map<String, Object> getDocumentUsers(@DestinationVariable String documentId) {
+    public Set<User> getDocumentUsers(@DestinationVariable String documentId) {
         Optional<Document> documentOpt = documentService.getDocumentById(documentId);
 
         if (documentOpt.isPresent()) {
             Document document = documentOpt.get();
-            Map<String, Object> response = new HashMap<>();
-            response.put("users", document.getUsers());
-            return response;
+            return document.getUsers();
         } else {
-            Map<String, Object> errorResponse = new HashMap<>();
-            errorResponse.put("error", "Document not found");
-            return errorResponse;
+            return null;
         }
     }
+
+
 
     /**
      * Handles a CRDT operation (insert or delete) and broadcasts it to all users.
@@ -217,12 +217,9 @@ public class WebSocketController {
      * @param document The document whose user list has been updated
      */
     private void notifyUserListUpdate(Document document) {
-        Map<String, Object> message = new HashMap<>();
-        message.put("users", document.getUsers());
-        
         messagingTemplate.convertAndSend(
                 "/topic/document/" + document.getId() + "/users",
-                message
+                document.getUsers()
         );
     }
 }
