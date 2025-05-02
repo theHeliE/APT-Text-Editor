@@ -1,5 +1,7 @@
 package com.springtest.apt_project_fe;
 
+import com.springtest.apt_project_fe.model.CRDT;
+import com.springtest.apt_project_fe.model.CrdtOperation;
 import com.springtest.apt_project_fe.model.User;
 import javafx.application.Platform;
 import org.springframework.messaging.converter.MappingJackson2MessageConverter;
@@ -26,11 +28,12 @@ public class SocketController {
     private StompSession stompSession;
     private String documentId;
     private User user;
+    Set<User> users = new HashSet<>();
     private boolean isConnected = false;
 
     // Callback handlers for various message types
     private Consumer<Set<User>> userListUpdateHandler;
-    private Consumer<Map<String, Object>> operationHandler;
+    private Consumer<CrdtOperation> operationHandler;
     private Consumer<Map<String, Object>> cursorUpdateHandler;
     private Consumer<String> connectionErrorHandler;
 
@@ -141,6 +144,7 @@ public class SocketController {
                 // Subscribe to document updates after successful join
                 subscribeToDocumentUpdates();
 
+
                 joinFuture.complete(response);
             }
         });
@@ -171,23 +175,23 @@ public class SocketController {
                 if (userListUpdateHandler != null) {
                     try {
                         // Print the raw payload to see its structure
-                        System.out.println("Raw payload class: " + payload.getClass().getName());
-                        System.out.println("Raw payload: " + payload);
+                        //System.out.println("Raw payload class: " + payload.getClass().getName());
+                        //System.out.println("Raw payload: " + payload);
 
                         // The payload is a List of Maps rather than List of Users
                         List<Map<String, Object>> userMaps = (List<Map<String, Object>>) payload;
-                        System.out.println("User maps size: " + userMaps.size());
+                        //ystem.out.println("User maps size: " + userMaps.size());
 
                         // Convert Maps to User objects manually
-                        Set<User> users = new HashSet<>();
+
                         for (Map<String, Object> userMap : userMaps) {
-                            System.out.println("Processing user map: " + userMap);
+                            //System.out.println("Processing user map: " + userMap);
 
                             String id = (String) userMap.get("id");
                             String color = (String) userMap.get("color");
                             Boolean editor = (Boolean) userMap.get("editor");
 
-                            System.out.println("User data: id=" + id + ", color=" + color + ", editor=" + editor);
+                            //System.out.println("User data: id=" + id + ", color=" + color + ", editor=" + editor);
 
                             // Use the regular constructor
                             User user = new User(id, color, editor);
@@ -198,18 +202,18 @@ public class SocketController {
                                 if (cursorPos instanceof Number) {
                                     user.setCursorPosition(((Number) cursorPos).intValue());
                                 }
-                                System.out.println("Set cursor position: " + user.getCursorPosition());
+                                //ystem.out.println("Set cursor position: " + user.getCursorPosition());
                             }
 
                             users.add(user);
-                            System.out.println("Added user: " + user.getId() + " " + user.isEditor() + " joined document " + documentId);
+                            //System.out.println("Added user: " + user.getId() + " " + user.isEditor() + " joined document " + documentId);
                         }
 
-                        System.out.println("Final user set size: " + users.size());
+                        //System.out.println("Final user set size: " + users.size());
                         Platform.runLater(() -> {
-                            System.out.println("Running userListUpdateHandler");
+                            //System.out.println("Running userListUpdateHandler");
                             userListUpdateHandler.accept(users);
-                            System.out.println("userListUpdateHandler completed");
+                            //System.out.println("userListUpdateHandler completed");
                         });
                     } catch (Exception e) {
                         System.err.println("Error processing user list: " + e.getMessage());
@@ -225,18 +229,54 @@ public class SocketController {
         stompSession.subscribe("/topic/document/" + documentId + "/operation", new StompFrameHandler() {
             @Override
             public Type getPayloadType(StompHeaders headers) {
+                // Change to receive as a Map instead of CrdtOperation
                 return Map.class;
             }
 
-            @SuppressWarnings("unchecked")
             @Override
             public void handleFrame(StompHeaders headers, Object payload) {
-                if (operationHandler != null) {
-                    Map<String, Object> operation = (Map<String, Object>) payload;
-                    Platform.runLater(() -> operationHandler.accept(operation));
+                System.out.println("Received raw payload: " + payload);
+                System.out.println("Payload class: " + (payload != null ? payload.getClass().getName() : "null"));
+
+                if (operationHandler != null && payload instanceof Map) {
+                    try {
+                        // Manually convert the Map to CrdtOperation
+                        Map<String, Object> map = (Map<String, Object>) payload;
+
+                        // Extract fields
+                        String type = (String) map.get("type");
+                        String userId = (String) map.get("userId");
+                        String clock = (String) map.get("clock");
+                        String nodeId = (String) map.get("nodeId");
+                        String parentId = (String) map.get("parentId");
+
+                        // Handle the value field (might be null or need conversion)
+                        Character value = null;
+                        Object rawValue = map.get("value");
+                        if (rawValue != null) {
+                            if (rawValue instanceof String && !((String) rawValue).isEmpty()) {
+                                value = ((String) rawValue).charAt(0);
+                            } else if (rawValue instanceof Character) {
+                                value = (Character) rawValue;
+                            }
+                        }
+
+                        // Create the CrdtOperation
+                        CrdtOperation operation = new CrdtOperation(
+                                type, userId, clock, nodeId, parentId, value
+                        );
+
+                        // Call the handler with the created operation
+                        operationHandler.accept(operation);
+                    } catch (Exception e) {
+                        System.err.println("Error converting payload to CrdtOperation: " + e.getMessage());
+                        e.printStackTrace();
+                    }
                 }
             }
         });
+
+
 
         // Subscribe to cursor updates
         stompSession.subscribe("/topic/document/" + documentId + "/cursor", new StompFrameHandler() {
@@ -302,39 +342,64 @@ public class SocketController {
      *
      * @return A CompletableFuture that completes with the user list
      */
-    public CompletableFuture<List<Map<String, Object>>> getDocumentUsers() {
+// In SocketController.java, modify the getDocumentUsers method:
+    public CompletableFuture<Set<User>> getDocumentUsers() {
         if (!isConnected || documentId == null) {
-            CompletableFuture<List<Map<String, Object>>> future = new CompletableFuture<>();
+            CompletableFuture<Set<User>> future = new CompletableFuture<>();
             future.completeExceptionally(new IllegalStateException("Not connected or no document joined"));
             return future;
         }
 
-        CompletableFuture<List<Map<String, Object>>> usersFuture = new CompletableFuture<>();
+        CompletableFuture<Set<User>> usersFuture = new CompletableFuture<>();
 
-        // Subscribe to receive the users list response
+        // Clear the existing users set to avoid duplicates
+        users.clear();
+
+        // Subscribe to receive the users response
         stompSession.subscribe("/user/queue/users", new StompFrameHandler() {
-            @Override
             public Type getPayloadType(StompHeaders headers) {
-                return Map.class;
+                return List.class;
             }
 
             @SuppressWarnings("unchecked")
             @Override
             public void handleFrame(StompHeaders headers, Object payload) {
-                Map<String, Object> response = (Map<String, Object>) payload;
+                try {
+                    List<Map<String, Object>> userMaps = (List<Map<String, Object>>) payload;
 
-                if (response.containsKey("error")) {
-                    usersFuture.completeExceptionally(
-                            new RuntimeException((String) response.get("error")));
-                    return;
+                    for (Map<String, Object> userMap : userMaps) {
+                        String id = (String) userMap.get("id");
+                        String color = (String) userMap.get("color");
+                        Boolean editor = (Boolean) userMap.get("editor");
+
+                        User user = new User(id, color, editor);
+
+                        if (userMap.containsKey("cursorPosition")) {
+                            Object cursorPos = userMap.get("cursorPosition");
+                            if (cursorPos instanceof Number) {
+                                user.setCursorPosition(((Number) cursorPos).intValue());
+                            }
+                        }
+
+                        users.add(user);
+                    }
+
+                    // Complete the future with the users set
+                    usersFuture.complete(new HashSet<>(users));
+
+                    // Call the update handler if it exists
+                    if (userListUpdateHandler != null) {
+                        Platform.runLater(() -> userListUpdateHandler.accept(users));
+                    }
+                } catch (Exception e) {
+                    System.err.println("Error processing user list: " + e.getMessage());
+                    e.printStackTrace();
+                    usersFuture.completeExceptionally(e);
                 }
-
-                List<Map<String, Object>> users = (List<Map<String, Object>>) response.get("users");
-                usersFuture.complete(users);
             }
         });
 
-        // Send request for users list
+        // Send request for document users
         stompSession.send("/app/document/" + documentId + "/users", null);
 
         return usersFuture;
@@ -342,20 +407,32 @@ public class SocketController {
 
     /**
      * Sends a CRDT operation (insert or delete) to the server.
-     *
-     * @param operationType The type of operation ("insert" or "delete")
-     * @param data Operation-specific data
      */
-    public void sendOperation(String operationType, Map<String, Object> data) {
+    public void sendOperation(CrdtOperation operation) {
         if (!isConnected || documentId == null || !user.isEditor()) {
             return; // Can't send operations if not connected, not in a document, or not an editor
         }
 
-        Map<String, Object> operation = new HashMap<>(data);
-        operation.put("type", operationType);
-        operation.put("userId", user.getId());
+        // Convert to Map before sending
+        Map<String, Object> operationMap = new HashMap<>();
+        operationMap.put("type", operation.type());
+        operationMap.put("userId", operation.userId());
+        operationMap.put("clock", operation.clock());
 
-        stompSession.send("/app/document/" + documentId + "/operation", operation);
+        // Only include nodeId for delete operations
+        if (operation.nodeId() != null) {
+            operationMap.put("nodeId", operation.nodeId());
+        }
+
+        // Only include parentId and value for insert operations
+        if (operation.parentId() != null) {
+            operationMap.put("parentId", operation.parentId());
+        }
+        if (operation.value() != null) {
+            operationMap.put("value", operation.value());
+        }
+
+        stompSession.send("/app/document/" + documentId + "/operation", operationMap);
     }
 
     /**
@@ -426,9 +503,11 @@ public class SocketController {
      *
      * @param handler Consumer that receives operation details
      */
-    public void setOperationHandler(Consumer<Map<String, Object>> handler) {
+    public void setOperationHandler(Consumer<CrdtOperation> handler) {
+        System.out.println("Setting operation handler: " + (handler != null));
         this.operationHandler = handler;
     }
+
 
     /**
      * Sets a handler for cursor updates.
@@ -464,5 +543,17 @@ public class SocketController {
 
     public boolean isEditor() {
         return user.isEditor();
+    }
+
+    public String getUserColor() {
+        return user.getColor();
+    }
+
+    public User getUser() {
+        return user;
+    }
+
+    public Set<User> getUsers() {
+        return users;
     }
 }

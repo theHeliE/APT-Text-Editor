@@ -3,6 +3,8 @@ package com.springtest.apt_project_fe.model;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+import java.util.Objects;
+
 public class User {
     private final String id;
     private final String color;
@@ -51,5 +53,18 @@ public class User {
         this.cursorPosition = (cursorPosition == null) ? -1 : cursorPosition;
     }
 
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof User)) return false;
+        User user = (User) o;
+        return Objects.equals(id, user.id);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(id);
+    }
 
 }

@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <?import com.jfoenix.controls.JFXButton?>
+<?import com.jfoenix.controls.JFXListView?>
 <?import com.jfoenix.controls.JFXTextArea?>
 <?import com.jfoenix.controls.JFXToolbar?>
 <?import javafx.scene.layout.AnchorPane?>
@@ -8,7 +9,7 @@
 <?import javafx.scene.text.Font?>
 <?import javafx.scene.text.Text?>
 
-<AnchorPane prefHeight="800.0" prefWidth="1280.0" xmlns="http://javafx.com/javafx/23.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.springtest.apt_project_fe.DocumentController" fx:id="rootPane">
+<AnchorPane fx:id="rootPane" prefHeight="800.0" prefWidth="1280.0" xmlns="http://javafx.com/javafx/23.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.springtest.apt_project_fe.DocumentController">
 
     <children>
         <JFXToolbar prefHeight="60.0" style="-fx-background-color: black;" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
@@ -21,23 +22,23 @@
             </center>
         </JFXToolbar>
 
-        <JFXTextArea fx:id="textArea" editable="true" layoutX="112.0" layoutY="59.0" prefHeight="741.0" prefWidth="1045.0" style="-fx-border-color: LIGHTGRAY; -fx-border-radius: 5px; -fx-padding: 40px;" wrapText="true" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="112.0" AnchorPane.rightAnchor="112.0" AnchorPane.topAnchor="70.0" />
+        <JFXTextArea fx:id="textArea" editable="true" layoutX="200.0" layoutY="59.0" prefHeight="730.0" prefWidth="900.0" style="-fx-border-color: LIGHTGRAY; -fx-border-radius: 5px; -fx-padding: 50px; -fx-background-color: WHITE;" wrapText="true" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="270.0" AnchorPane.rightAnchor="270.0" AnchorPane.topAnchor="70.0" />
         <HBox spacing="10.0" AnchorPane.rightAnchor="10.0" AnchorPane.topAnchor="5.0">
             <children>
 
-                <JFXButton onAction="#handleMinimize" prefHeight="25.0" prefWidth="30.0" text="—" textFill="WHITE" style="-fx-background-color: transparent;">
+                <JFXButton onAction="#handleMinimize" prefHeight="25.0" prefWidth="30.0" style="-fx-background-color: transparent;" text="—" textFill="WHITE">
                     <font>
                         <Font name="Arial Black" size="16.0" />
                     </font>
                 </JFXButton>
 
-                <JFXButton onAction="#handleMaximize" prefHeight="25.0" prefWidth="30.0" text="□" textFill="WHITE" style="-fx-background-color: transparent;">
+                <JFXButton onAction="#handleMaximize" prefHeight="25.0" prefWidth="30.0" style="-fx-background-color: transparent;" text="□" textFill="WHITE">
                     <font>
                         <Font name="Arial Black" size="16.0" />
                     </font>
                 </JFXButton>
 
-                <JFXButton onAction="#handleClose" prefHeight="25.0" prefWidth="30.0" text="✖" textFill="WHITE" style="-fx-background-color: transparent;">
+                <JFXButton onAction="#handleClose" prefHeight="25.0" prefWidth="30.0" style="-fx-background-color: transparent;" text="✖" textFill="WHITE">
                     <font>
                         <Font name="Arial Black" size="16.0" />
                     </font>
@@ -53,6 +54,10 @@
          <font>
             <Font name="Dubai Regular" size="12.0" />
          </font></JFXButton>
-      <HBox layoutX="799.0" layoutY="244.0" prefHeight="100.0" prefWidth="200.0" />
+        <JFXListView fx:id="userList"
+                     AnchorPane.topAnchor="70.0"
+                     AnchorPane.bottomAnchor="0.0"
+                     AnchorPane.leftAnchor="0.0"
+                     prefWidth="258.0" />
     </children>
 </AnchorPane>

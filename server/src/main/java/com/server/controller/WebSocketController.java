@@ -142,18 +142,26 @@ public class WebSocketController {
 
             // Apply the operation based on its type
             if ("insert".equals(operation.type())) {
+                System.out.println("Attempting insert with: userId=" + operation.userId() +
+                        ", clock=" + operation.clock() +
+                        ", value=" + operation.value() +
+                        ", parentId=" + operation.parentId());
                 success = document.getCrdt().insertCharacter(
                         operation.userId(),
                         operation.clock(),
                         operation.value(),
                         operation.parentId()
                 );
+                System.out.println("Insert success: " + success);
             } else if ("delete".equals(operation.type())) {
+                System.out.println("Attempting delete with nodeId=" + operation.nodeId());
                 success = document.getCrdt().deleteCharacterById(operation.nodeId());
+                System.out.println("Delete success: " + success);
             }
 
             if (success) {
                 // Broadcast the operation to all users in the document
+                System.out.println("Received operation: " + operation);
                 messagingTemplate.convertAndSend(
                         "/topic/document/" + documentId + "/operation",
                         operation

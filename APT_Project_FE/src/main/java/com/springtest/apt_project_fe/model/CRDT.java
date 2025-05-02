@@ -148,27 +148,28 @@ public class CRDT {
      * @param clock the timestamp representing the real clock time
      * @return the ID of the newly inserted node
      */
-//    public String insertCharacterAt(String userId, int position, char value, String clock) {
-//        if (position < 0) {
-//            throw new IllegalArgumentException("Position cannot be negative");
-//        }
-//
-//        // Get the path to the insertion point
-//        List<CharacterNode> path = getPathToPosition(position);
-//        CharacterNode parentNode = path.isEmpty() ? root : path.get(path.size() - 1);
-//
-//        // Create new node
-//        CharacterNode newNode = new CharacterNode(userId, clock, value, parentNode.getId());
-//
-//        // Add to parent's children and sort them
-//        parentNode.addChild(newNode);
-//        sortChildren(parentNode.getChildren());
-//
-//        // Add to the nodes map
-//        nodeMap.put(newNode.getId(), newNode);
-//
-//        return newNode.getId();
-//    }
+    public String insertCharacterAt(String userId, int position, char value, String clock) {
+        if (position < 0) {
+            throw new IllegalArgumentException("Position cannot be negative");
+        }
+
+        // Get the path to the insertion point
+        List<CharacterNode> path = getPathToPosition(position);
+        CharacterNode parentNode = path.isEmpty() ? root : path.get(path.size() - 1);
+
+        // Create new node
+        CharacterNode newNode = new CharacterNode(userId, clock, value, parentNode.getId());
+
+        // Add to parent's children and sort them
+        parentNode.addChild(newNode);
+        List<CharacterNode> childrenList = new ArrayList<>(parentNode.getChildren());
+        sortChildren(childrenList);
+
+        // Add to the nodes map
+        nodeMap.put(newNode.getId(), newNode);
+
+        return newNode.getId();
+    }
 
 
 

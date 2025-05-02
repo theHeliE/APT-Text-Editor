@@ -67,9 +67,9 @@ public class Document {
     }
 
     private String generateRandomColor() {
-        int r = (int)(Math.random() * 127) + 128; // 128-255
-        int g = (int)(Math.random() * 127) + 128; // 128-255
-        int b = (int)(Math.random() * 127) + 128; // 128-255
+        int r = (int)(Math.random() * 127) + 70;   // 50-178
+        int g = (int)(Math.random() * 127) + 70; // 50-178
+        int b = (int)(Math.random() * 127) + 70; // 50-178
         return String.format("#%02X%02X%02X", r, g, b);
     }
 }
