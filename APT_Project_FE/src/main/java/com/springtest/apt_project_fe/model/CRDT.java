@@ -154,24 +154,34 @@ public class CRDT {
             throw new IllegalArgumentException("Position cannot be negative");
         }
 
-        // Get the path to the insertion point
-        List<CharacterNode> path = getPathToPosition(position);
-        CharacterNode parentNode = path.isEmpty() ? root : path.get(path.size() - 1);
+        List<CharacterNode> nodes = getInOrderTraversal();
 
-        // Create new node
+        // The character before the insertion position should be the parent
+        CharacterNode parentNode;
+        if (position == 0) {
+            // If inserting at the beginning, use root as parent
+            parentNode = root;
+        } else if (position <= nodes.size()) {
+            // Get the node BEFORE the insertion position as parent
+            parentNode = nodes.get(position - 1);
+        } else {
+            // If position is beyond the end, use the last node as parent
+            parentNode = nodes.get(nodes.size() - 1);
+        }
+
+        // Create new node with the determined parent
         CharacterNode newNode = new CharacterNode(userId, clock, value, parentNode.getId());
 
-        // Add to parent's children and sort them
+        // Add to parent's children
         parentNode.addChild(newNode);
-        List<CharacterNode> childrenList = new ArrayList<>(parentNode.getChildren());
-        sortChildren(childrenList);
-
-        // Add to the nodes map
         nodeMap.put(newNode.getId(), newNode);
+
+        // Debug - log what we're doing
+        System.out.println("Inserting '" + value + "' with parent '" +
+                parentNode.getValue() + "' (ID: " + parentNode.getId() + ")");
 
         return newNode.getId();
     }
-
 
 
 
@@ -224,8 +234,20 @@ public class CRDT {
     public List<CharacterNode> getInOrderTraversal() {
         List<CharacterNode> result = new ArrayList<>();
         inOrderTraversal(root, result);
+
+        // Debug logging
+        StringBuilder traversalDebug = new StringBuilder("Document traversal: ");
+        for (CharacterNode node : result) {
+            if (!node.isDeleted()) {
+                traversalDebug.append(node.getValue())
+                        .append("(").append(node.getId()).append(") ");
+            }
+        }
+        System.out.println(traversalDebug.toString());
+
         return result;
     }
+
 
     /**
      * Recursively traverse the tree in order and collect all visible nodes
@@ -237,7 +259,7 @@ public class CRDT {
             result.add(node);
         }
 
-        // Sort children by descending clock and then by user ID
+        // Get children and sort them appropriately for document order
         List<CharacterNode> sortedChildren = new ArrayList<>(node.getChildren());
         sortChildren(sortedChildren);
 
@@ -245,6 +267,7 @@ public class CRDT {
             inOrderTraversal(child, result);
         }
     }
+
 
     /**
      * Sort children by descending clock (timestamp) and then by user ID
@@ -298,5 +321,9 @@ public class CRDT {
 
     public ArrayList<String> getNodeIDs() {
         return nodeIDs;
+    }
+
+    public Map<String, CharacterNode> getNodeMap() {
+        return nodeMap;
     }
 }

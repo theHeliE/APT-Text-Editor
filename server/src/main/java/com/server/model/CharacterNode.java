@@ -24,8 +24,9 @@ public class CharacterNode {
         return id;
     }
 
-    public void setDeleted(boolean deleted) {
+    public boolean setDeleted(boolean deleted) {
         this.deleted = deleted;
+        return true;
     }
 
     public void addChild(CharacterNode child) {

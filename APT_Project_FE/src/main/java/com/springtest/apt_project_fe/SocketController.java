@@ -174,24 +174,18 @@ public class SocketController {
 
                 if (userListUpdateHandler != null) {
                     try {
-                        // Print the raw payload to see its structure
-                        //System.out.println("Raw payload class: " + payload.getClass().getName());
-                        //System.out.println("Raw payload: " + payload);
-
                         // The payload is a List of Maps rather than List of Users
                         List<Map<String, Object>> userMaps = (List<Map<String, Object>>) payload;
-                        //ystem.out.println("User maps size: " + userMaps.size());
+                        System.out.println("User maps size: " + userMaps.size());
+
+                        // Create a new Set to hold the updated users
+                        Set<User> updatedUsers = new HashSet<>();  // Use a new temporary collection
 
                         // Convert Maps to User objects manually
-
                         for (Map<String, Object> userMap : userMaps) {
-                            //System.out.println("Processing user map: " + userMap);
-
                             String id = (String) userMap.get("id");
                             String color = (String) userMap.get("color");
                             Boolean editor = (Boolean) userMap.get("editor");
-
-                            //System.out.println("User data: id=" + id + ", color=" + color + ", editor=" + editor);
 
                             // Use the regular constructor
                             User user = new User(id, color, editor);
@@ -202,18 +196,15 @@ public class SocketController {
                                 if (cursorPos instanceof Number) {
                                     user.setCursorPosition(((Number) cursorPos).intValue());
                                 }
-                                //ystem.out.println("Set cursor position: " + user.getCursorPosition());
                             }
 
-                            users.add(user);
-                            //System.out.println("Added user: " + user.getId() + " " + user.isEditor() + " joined document " + documentId);
+                            updatedUsers.add(user);  // Add to the temporary collection
                         }
 
-                        //System.out.println("Final user set size: " + users.size());
                         Platform.runLater(() -> {
-                            //System.out.println("Running userListUpdateHandler");
-                            userListUpdateHandler.accept(users);
-                            //System.out.println("userListUpdateHandler completed");
+                            // Pass the NEW collection to the handler
+                            userListUpdateHandler.accept(updatedUsers);
+                            System.out.println("userListUpdateHandler completed");
                         });
                     } catch (Exception e) {
                         System.err.println("Error processing user list: " + e.getMessage());
@@ -481,6 +472,7 @@ public class SocketController {
             if (documentId != null) {
                 leaveDocument();
             }
+            System.out.println("Disconnecting from server");
 
             stompSession.disconnect();
             stompSession = null;

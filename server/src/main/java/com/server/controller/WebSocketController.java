@@ -158,6 +158,11 @@ public class WebSocketController {
                 success = document.getCrdt().deleteCharacterById(operation.nodeId());
                 System.out.println("Delete success: " + success);
             }
+            else if ("undoDelete".equals(operation.type())) {
+                System.out.println("Attemting to undo delete with nodeId=" + operation.nodeId());
+                success = document.getCrdt().getNodes().get(operation.nodeId()).setDeleted(false);
+                System.out.println("Undo delete success: " + success);
+            }
 
             if (success) {
                 // Broadcast the operation to all users in the document

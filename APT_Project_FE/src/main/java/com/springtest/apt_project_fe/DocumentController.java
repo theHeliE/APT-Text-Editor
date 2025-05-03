@@ -34,6 +34,10 @@ public class DocumentController {
     private Set<User> users = new HashSet<>();
 
     private final String URL = "ws://localhost:8080/ws";
+    SocketController wsClient = new SocketController(URL);
+
+    Stack<CrdtOperation> undoStack = new Stack<>();
+    Stack<CrdtOperation> redoStack = new Stack<>();
 
     public void initialize() {
         rootPane.setOnMousePressed(event -> {
@@ -49,7 +53,6 @@ public class DocumentController {
 
     public void setDocumentCode(String documentCode) {
         this.documentCode = documentCode;
-        SocketController wsClient = new SocketController(URL);
 
         wsClient.setConnectionErrorHandler(error -> {
             Platform.runLater(() -> {
@@ -79,6 +82,7 @@ public class DocumentController {
                 handleCursorChange(wsClient);
 
                 wsClient.setUserListUpdateHandler(updatedUsers -> {
+                    System.out.println("User list update received with " + updatedUsers.size() + " users");
                     Platform.runLater(() -> {
                         Set<User> updatedUserSet = new HashSet<>(updatedUsers);
                         if (!updatedUserSet.equals(users)) {
@@ -97,6 +101,10 @@ public class DocumentController {
 
                     fetchDocument(wsClient);
                     me = wsClient.getUser();
+
+                    if (!me.isEditor()){
+                        textArea.setEditable(false);
+                    }
 
                     wsClient.getDocumentUsers().thenAccept(userSet -> {
                         Platform.runLater(() -> {
@@ -236,6 +244,9 @@ public class DocumentController {
                     } else if (operation.type().equals("delete")) {
                         crdt.deleteCharacterById(operation.nodeId());
                     }
+                    else if (operation.type().equals("undoDelete")) {
+                        crdt.getNodeMap().get(operation.nodeId()).setDeleted(false);
+                    }
 
                     // Set flag to ignore changes while we update the text area
                     ignoreTextChanges = true;
@@ -285,8 +296,11 @@ public class DocumentController {
                     List<CharacterNode> nodes = crdt.getInOrderTraversal();
                     // Get the node that is BEFORE the insertion position
                     int parentIndex = insertPos - 1;
+                    System.out.println("Parent index: " + parentIndex);
                     if (parentIndex >= 0 && parentIndex < nodes.size()) {
                         parentId = nodes.get(parentIndex).getId();
+                        System.out.println("parentId: " + parentId);
+                        System.out.println("Parent value: " + nodes.get(parentIndex).getValue());
                     } else {
                         // Fallback to root if no valid parent found
                         parentId = "0:0";
@@ -295,7 +309,7 @@ public class DocumentController {
 
                 // Apply to local CRDT first
                 String newNodeId = crdt.insertCharacterAt(me.getId(), insertPos, insertedChar, clock);
-
+                List<CharacterNode> nodes = crdt.getInOrderTraversal();
                 if (newNodeId != null) {
                     // Send operation to server
                     CrdtOperation operation = new CrdtOperation(
@@ -306,13 +320,18 @@ public class DocumentController {
                             parentId,
                             insertedChar
                     );
+                    undoStack.push(operation);
+                    redoStack.clear();
+
+//                    System.out.println("insertion index: " + insertPos);
+//                    System.out.println("insert in nodes map: " + nodes.get(insertPos).getValue());
                     wsClient.sendOperation(operation);
                 }
             } else if (oldValue.length() > newValue.length()) {
                 // Character was deleted
                 int caretPos = textArea.getCaretPosition();
                 // For deletion, the caret position is already at the position where the character was deleted
-                int deletePos = caretPos;
+                int deletePos = caretPos - 1;
 
                 // Use deleteCharacter method which takes a position
                 String deletedNodeId = crdt.deleteCharacter(deletePos);
@@ -327,25 +346,13 @@ public class DocumentController {
                             null,  // parentId not needed for delete
                             null   // value not needed for delete
                     );
+                    undoStack.push(operation);
+                    redoStack.clear();
+
                     wsClient.sendOperation(operation);
                 }
             }
         });
-    }
-
-    // Helper method to find where a change occurred between two strings
-    private int findChangePosition(String shorter, String longer) {
-        int minLength = Math.min(shorter.length(), longer.length());
-
-        // Find the position where the strings differ
-        for (int i = 0; i < minLength; i++) {
-            if (shorter.charAt(i) != longer.charAt(i)) {
-                return i;
-            }
-        }
-
-        // If we reached here, the difference is at the end
-        return minLength;
     }
 
     private void handleCursorChange(SocketController wsClient) {
@@ -373,6 +380,9 @@ public class DocumentController {
         });
     }
 
+    private void handleLeaving(SocketController wsClient) {
+        wsClient.disconnect();
+    }
 
 //    private void attemptReconnection(SocketController wsClient, int attemptCount) {
 //        if (attemptCount > 5) {
@@ -414,13 +424,59 @@ public class DocumentController {
     }
 
     @FXML
+    private void handleUndo(ActionEvent event) {
+        if (undoStack.isEmpty()) return;
+        CrdtOperation operation = undoStack.pop();
+        redoStack.push(operation);
+
+        if(operation.type().equals("insert")) {
+            crdt.deleteCharacterById(operation.nodeId());
+            CrdtOperation undoOperation = new CrdtOperation("delete", operation.userId(), operation.clock(), operation.nodeId(), null, null);
+            wsClient.sendOperation(undoOperation);
+            setFileContent(crdt.getText());
+        } else if (operation.type().equals("delete")) {
+            crdt.getNodeMap().get(operation.nodeId()).setDeleted(false);
+            CrdtOperation undoOperation = new CrdtOperation("undoDelete", operation.userId(), operation.clock(), operation.nodeId(), null, null);
+            wsClient.sendOperation(undoOperation);
+            setFileContent(crdt.getText());
+        }
+    }
+
+    @FXML
+    private void handleRedo(ActionEvent event) {
+        if(redoStack.isEmpty()) return;
+        CrdtOperation operation = redoStack.pop();
+        undoStack.push(operation);
+
+        if(operation.type().equals("insert")) {
+            crdt.getNodeMap().get(operation.nodeId()).setDeleted(false);
+            CrdtOperation redoOperation = new CrdtOperation("undoDelete", operation.userId(), operation.clock(), operation.nodeId(), null, null);
+            wsClient.sendOperation(redoOperation);
+            setFileContent(crdt.getText());
+        } else if (operation.type().equals("delete")) {
+            crdt.deleteCharacterById(operation.nodeId());
+            CrdtOperation redoOperation = new CrdtOperation("delete", operation.userId(), operation.clock(), operation.nodeId(), null, null);
+            wsClient.sendOperation(redoOperation);
+            setFileContent(crdt.getText());
+        }
+    }
+
+    @FXML
     private void handleMinimize(ActionEvent event) {
         ((Stage) ((JFXButton) event.getSource()).getScene().getWindow()).setIconified(true);
     }
 
     @FXML
     private void handleClose(ActionEvent event) {
+        handleLeaving(wsClient);
+        wsClient.disconnect(); // Explicitly call disconnect
+
+        // Close the window
         ((Stage) ((JFXButton) event.getSource()).getScene().getWindow()).close();
+
+        // Add this to exit the application process completely
+        Platform.exit();
+        System.exit(0);
     }
 
     @FXML

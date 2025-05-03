@@ -99,4 +99,8 @@ public class CRDT {
 
         return result;
     }
+
+    public Map<String, CharacterNode> getNodes() {
+        return nodeMap;
+    }
 }

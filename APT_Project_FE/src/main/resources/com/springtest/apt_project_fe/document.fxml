@@ -46,11 +46,11 @@
 
             </children>
         </HBox>
-        <JFXButton layoutX="20.0" layoutY="20.0" style="-fx-background-color: WHITE;" text="UNDO" AnchorPane.leftAnchor="20.0" AnchorPane.topAnchor="20.0">
+        <JFXButton layoutX="20.0" layoutY="20.0" style="-fx-background-color: WHITE;" text="UNDO" AnchorPane.leftAnchor="20.0" AnchorPane.topAnchor="20.0" onAction="#handleUndo">
          <font>
             <Font name="Dubai Regular" size="12.0" />
          </font></JFXButton>
-        <JFXButton layoutX="100.0" layoutY="20.0" style="-fx-background-color: WHITE;" text="REDO" AnchorPane.leftAnchor="100.0" AnchorPane.topAnchor="20.0">
+        <JFXButton layoutX="100.0" layoutY="20.0" style="-fx-background-color: WHITE;" text="REDO" AnchorPane.leftAnchor="100.0" AnchorPane.topAnchor="20.0" onAction="#handleRedo">
          <font>
             <Font name="Dubai Regular" size="12.0" />
          </font></JFXButton>
