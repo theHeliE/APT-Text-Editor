@@ -180,6 +180,7 @@ public class WebSocketController {
     public void handleCursorUpdate(
             @DestinationVariable String documentId,
             @Payload CursorUpdateRequest request) {
+        System.out.println("Received cursor update: " + request);
         
         Optional<Document> documentOpt = documentService.getDocumentById(documentId);
 

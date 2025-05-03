@@ -19,8 +19,7 @@ import javafx.scene.paint.Color;
 import javafx.stage.Stage;
 
 import java.util.*;
-
-import static com.springtest.apt_project_fe.model.CRDT.fromSerialized;
+import java.util.concurrent.atomic.AtomicReference;
 
 public class DocumentController {
     @FXML private TextArea textArea;
@@ -52,15 +51,32 @@ public class DocumentController {
         this.documentCode = documentCode;
         SocketController wsClient = new SocketController(URL);
 
-        wsClient.setConnectionErrorHandler(error ->
-                Platform.runLater(() -> System.err.println("Connection error: " + error))
-        );
+        wsClient.setConnectionErrorHandler(error -> {
+            Platform.runLater(() -> {
+                System.err.println("Connection error: " + error);
+
+                // Add reconnection logic here
+                if (error.contains("Connection closed")) {
+                    Alert alert = new Alert(Alert.AlertType.WARNING);
+                    alert.setTitle("Connection Issue");
+                    alert.setHeaderText("Connection Lost");
+                    alert.setContentText("Connection to the document server was lost. " +
+                            "This may happen if too many users are connected simultaneously. " +
+                            "The application will attempt to reconnect.");
+                    alert.show();
+
+                    // Optional: Implement automatic reconnection attempts
+                    // with exponential backoff
+                }
+            });
+        });
 
         wsClient.connect().thenAccept(connected -> {
             if (connected) {
                 System.out.println("Connected to WebSocket server");
 
                 handleOperation(wsClient);
+                handleCursorChange(wsClient);
 
                 wsClient.setUserListUpdateHandler(updatedUsers -> {
                     Platform.runLater(() -> {
@@ -122,9 +138,23 @@ public class DocumentController {
         alert.setOnHidden(evt -> stageToClose.close());
         alert.showAndWait();
     }
+    private boolean ignoreTextChanges = false;
+
 
     public void setFileContent(String content) {
+        ignoreTextChanges = true;
+
+        // Update the text area with the content
         textArea.setText(content);
+
+        // Position caret at the beginning or end as needed
+        textArea.positionCaret(0);
+
+        // Re-enable text change processing AFTER the update
+        ignoreTextChanges = false;
+
+        System.out.println("File content set without triggering operations: " + content);
+
     }
 
     private void populateListView() {
@@ -186,16 +216,16 @@ public class DocumentController {
 
     public void handleOperation(SocketController wsClient) {
         // Handle incoming operations from other users
+
         wsClient.setOperationHandler(operation -> {
             Platform.runLater(() -> {
-                // Skip operations initiated by the current user (they're already applied locally)
+                // Skip operations initiated by the current user
                 if (me != null && operation.userId().equals(me.getId())) {
                     return;
                 }
 
-                // Apply the remote operation to the local CRDT
                 try {
-                    // Handle insert operation
+                    // Apply the remote operation to the local CRDT
                     if (operation.type().equals("insert")) {
                         crdt.insertCharacter(
                                 operation.userId(),
@@ -203,22 +233,23 @@ public class DocumentController {
                                 operation.value(),
                                 operation.parentId()
                         );
-                    }
-                    // Handle delete operation
-                    else if (operation.type().equals("delete")) {
+                    } else if (operation.type().equals("delete")) {
                         crdt.deleteCharacterById(operation.nodeId());
                     }
 
-                    // Update the text area with the new CRDT state, maintaining cursor position
+                    // Set flag to ignore changes while we update the text area
+                    ignoreTextChanges = true;
                     int caretPosition = textArea.getCaretPosition();
                     textArea.setText(crdt.getText());
 
-                    // Try to maintain the cursor position if possible
                     try {
                         textArea.positionCaret(Math.min(caretPosition, textArea.getText().length()));
                     } catch (Exception e) {
                         System.err.println("Error repositioning caret: " + e.getMessage());
                     }
+
+                    // Re-enable text change processing
+                    ignoreTextChanges = false;
                 } catch (Exception e) {
                     System.err.println("Error processing remote operation: " + e.getMessage());
                     e.printStackTrace();
@@ -229,38 +260,41 @@ public class DocumentController {
         // Set up local text change listener
         // Set up local text change listener
         textArea.textProperty().addListener((observable, oldValue, newValue) -> {
-            if (crdt == null || me == null) return; // Not initialized yet
+            if (ignoreTextChanges || crdt == null || me == null) return;
 
             // Calculate the change
             if (oldValue.length() < newValue.length()) {
                 // Character was inserted
-                int changePos = findChangePosition(oldValue, newValue);
-                char insertedChar = newValue.charAt(changePos);
+                int caretPos = textArea.getCaretPosition();
+                System.out.println("Caret position: " + caretPos);
+                // The caret position is after the inserted character, so we need the position before
+
+                int insertPos = caretPos;
+                char insertedChar = newValue.charAt(insertPos);
 
                 // Generate a timestamp for this operation
                 String clock = generateClock();
 
                 // Find the parent node ID based on insertion position
                 String parentId;
-                if (changePos == 0) {
+                if (insertPos == 0) {
                     // If inserting at the beginning, use the root node as parent
-                    parentId = "root";
+                    parentId = "0:0";
                 } else {
                     // Otherwise, get the node at the position before the insertion
                     List<CharacterNode> nodes = crdt.getInOrderTraversal();
-                    // We need the node that is BEFORE the insertion position
-                    // Be careful with indices - may need adjustment based on your implementation
-                    int parentIndex = Math.min(changePos - 1, nodes.size() - 1);
+                    // Get the node that is BEFORE the insertion position
+                    int parentIndex = insertPos - 1;
                     if (parentIndex >= 0 && parentIndex < nodes.size()) {
                         parentId = nodes.get(parentIndex).getId();
                     } else {
                         // Fallback to root if no valid parent found
-                        parentId = "root";
+                        parentId = "0:0";
                     }
                 }
 
                 // Apply to local CRDT first
-                String newNodeId = crdt.insertCharacterAt(me.getId(), changePos, insertedChar, clock);
+                String newNodeId = crdt.insertCharacterAt(me.getId(), insertPos, insertedChar, clock);
 
                 if (newNodeId != null) {
                     // Send operation to server
@@ -268,15 +302,17 @@ public class DocumentController {
                             "insert",
                             me.getId(),
                             clock,
-                            newNodeId,  // Include the new node ID
-                            parentId,   // Use the properly determined parent ID
+                            newNodeId,
+                            parentId,
                             insertedChar
                     );
                     wsClient.sendOperation(operation);
                 }
             } else if (oldValue.length() > newValue.length()) {
-                // Character was deleted - this part seems correct
-                int deletePos = findChangePosition(newValue, oldValue);
+                // Character was deleted
+                int caretPos = textArea.getCaretPosition();
+                // For deletion, the caret position is already at the position where the character was deleted
+                int deletePos = caretPos;
 
                 // Use deleteCharacter method which takes a position
                 String deletedNodeId = crdt.deleteCharacter(deletePos);
@@ -311,6 +347,65 @@ public class DocumentController {
         // If we reached here, the difference is at the end
         return minLength;
     }
+
+    private void handleCursorChange(SocketController wsClient) {
+        // Create a timer for debouncing
+        AtomicReference<Timer> cursorUpdateTimer = new AtomicReference<>(new Timer());
+
+        textArea.caretPositionProperty().addListener((observable, oldValue, newValue) -> {
+            // Cancel any pending update
+            System.out.println("Cursor updated to " + newValue);
+            cursorUpdateTimer.get().cancel();
+            cursorUpdateTimer.get().purge();
+
+            // Create a new timer
+            cursorUpdateTimer.set(new Timer());
+
+            // Schedule update after a short delay (e.g., 50ms)
+            cursorUpdateTimer.get().schedule(new TimerTask() {
+                @Override
+                public void run() {
+                    Platform.runLater(() -> {
+                        wsClient.sendCursorUpdate(newValue);
+                    });
+                }
+            }, 50);
+        });
+    }
+
+
+//    private void attemptReconnection(SocketController wsClient, int attemptCount) {
+//        if (attemptCount > 5) {
+//            Platform.runLater(() -> showErrorAndClose(
+//                    "Connection Failed",
+//                    "Unable to Reconnect",
+//                    "Could not reconnect to the document server after multiple attempts.",
+//                    (Stage) rootPane.getScene().getWindow())
+//            );
+//            return;
+//        }
+//
+//        // Exponential backoff
+//        int delay = (int) Math.pow(2, attemptCount) * 1000;
+//
+//        new Timer().schedule(new TimerTask() {
+//            @Override
+//            public void run() {
+//                wsClient.connect().thenAccept(connected -> {
+//                    if (connected) {
+//                        Platform.runLater(() -> System.out.println("Reconnected to server"));
+//                        wsClient.joinDocument(documentCode).thenAccept(response -> {
+//                            if (!response.containsKey("error")) {
+//                                fetchDocument(wsClient);
+//                            }
+//                        });
+//                    } else {
+//                        attemptReconnection(wsClient, attemptCount + 1);
+//                    }
+//                });
+//            }
+//        }, delay);
+//    }
 
     // Helper method to generate a clock timestamp
     private String generateClock() {

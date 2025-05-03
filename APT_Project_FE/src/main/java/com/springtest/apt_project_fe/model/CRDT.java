@@ -5,6 +5,7 @@ import java.util.*;
 public class CRDT {
     private final CharacterNode root;
     private final Map<String, CharacterNode> nodeMap; // nodeId -> node
+    private ArrayList <String> nodeIDs = new ArrayList<>();
 
     /**
      * Creates a new CRDT instance
@@ -210,6 +211,7 @@ public class CRDT {
 
         for (CharacterNode node : nodes) {
             text.append(node.getValue());
+            nodeIDs.add(node.getId());
         }
 
         return text.toString();
@@ -294,4 +296,7 @@ public class CRDT {
         return path;
     }
 
+    public ArrayList<String> getNodeIDs() {
+        return nodeIDs;
+    }
 }

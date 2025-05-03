@@ -291,6 +291,7 @@ public class SocketController {
                 if (cursorUpdateHandler != null) {
                     Map<String, Object> cursorUpdate = (Map<String, Object>) payload;
                     Platform.runLater(() -> cursorUpdateHandler.accept(cursorUpdate));
+                    System.out.println("user: " + cursorUpdate.get("userId") + "cursor at :" + cursorUpdate.get("position"));
                 }
             }
         });
