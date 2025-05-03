@@ -50,8 +50,8 @@ public class Browser {
             root = loader.load();
 
             // inject content
-            DocumentController viewer = loader.getController();
-            viewer.setFileContent(content);
+            DocumentController documentController = loader.getController();
+            documentController.createDocument(selected.getName(),content);
 
             // show in new window
             stage = new Stage();

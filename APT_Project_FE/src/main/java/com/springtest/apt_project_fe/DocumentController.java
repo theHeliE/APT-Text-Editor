@@ -3,10 +3,12 @@ package com.springtest.apt_project_fe;
 import com.jfoenix.controls.JFXButton;
 import com.jfoenix.controls.JFXListCell;
 import com.jfoenix.controls.JFXListView;
+import com.jfoenix.controls.JFXTextArea;
 import com.springtest.apt_project_fe.model.CRDT;
 import com.springtest.apt_project_fe.model.CharacterNode;
 import com.springtest.apt_project_fe.model.User;
 import com.springtest.apt_project_fe.model.CrdtOperation;
+import javafx.animation.PauseTransition;
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -14,9 +16,14 @@ import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.scene.control.Alert;
 import javafx.scene.control.TextArea;
+import javafx.scene.input.Clipboard;
+import javafx.scene.input.ClipboardContent;
 import javafx.scene.layout.AnchorPane;
 import javafx.scene.paint.Color;
 import javafx.stage.Stage;
+import javafx.util.Duration;
+import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
+import org.springframework.web.client.RestTemplate;
 
 import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
@@ -25,6 +32,14 @@ public class DocumentController {
     @FXML private TextArea textArea;
     @FXML private JFXListView<User> userList;
     @FXML private AnchorPane rootPane;
+    @FXML private JFXTextArea editorCode;
+    @FXML private JFXTextArea viewerCode;
+    @FXML private JFXButton copyEditorCode;
+    @FXML private JFXButton copyViewerCode;
+    @FXML private AnchorPane creator;
+
+    private boolean isCreator = false;
+
 
     private double xOffset = 0;
     private double yOffset = 0;
@@ -32,14 +47,21 @@ public class DocumentController {
     private String documentCode;
     private User me;
     private Set<User> users = new HashSet<>();
+    private CRDT crdt;
 
     private final String URL = "ws://localhost:8080/ws";
     SocketController wsClient = new SocketController(URL);
 
+    private final String HTTP_URL = "http://localhost:8080/document/";
+
     Stack<CrdtOperation> undoStack = new Stack<>();
     Stack<CrdtOperation> redoStack = new Stack<>();
 
+    private String editorCodeText;
+    private String viewerCodeText;
+
     public void initialize() {
+
         rootPane.setOnMousePressed(event -> {
             xOffset = event.getSceneX();
             yOffset = event.getSceneY();
@@ -51,7 +73,7 @@ public class DocumentController {
         });
     }
 
-    public void setDocumentCode(String documentCode) {
+    public void joinDocument(String documentCode) {
         this.documentCode = documentCode;
 
         wsClient.setConnectionErrorHandler(error -> {
@@ -81,17 +103,7 @@ public class DocumentController {
                 handleOperation(wsClient);
                 handleCursorChange(wsClient);
 
-                wsClient.setUserListUpdateHandler(updatedUsers -> {
-                    System.out.println("User list update received with " + updatedUsers.size() + " users");
-                    Platform.runLater(() -> {
-                        Set<User> updatedUserSet = new HashSet<>(updatedUsers);
-                        if (!updatedUserSet.equals(users)) {
-                            users.clear();
-                            users.addAll(updatedUserSet);
-                            populateListView();
-                        }
-                    });
-                });
+                UpdateUserList();
 
                 wsClient.joinDocument(documentCode).thenAccept(response -> {
                     if (response.containsKey("error")) {
@@ -101,21 +113,13 @@ public class DocumentController {
 
                     fetchDocument(wsClient);
                     me = wsClient.getUser();
+                    creatorPanel();
 
                     if (!me.isEditor()){
                         textArea.setEditable(false);
                     }
 
-                    wsClient.getDocumentUsers().thenAccept(userSet -> {
-                        Platform.runLater(() -> {
-                            users.clear();
-                            users.addAll(userSet);
-                            populateListView();
-                        });
-                    }).exceptionally(ex -> {
-                        System.err.println("Error getting users: " + ex.getMessage());
-                        return null;
-                    });
+                    getDocumentUsers();
 
                 }).exceptionally(ex -> {
                     Platform.runLater(() -> {
@@ -136,6 +140,96 @@ public class DocumentController {
             });
             return null;
         });
+    }
+
+    public void createDocument(String name) {
+        createDocument(name, "");
+    }
+
+    public void createDocument(String name, String content) {
+        RestTemplate restTemplate = new RestTemplate();
+
+        // Create a Map instead of ArrayList to properly serialize to a JSON object
+        Map<String, String> requestData = new HashMap<>();
+        requestData.put("name", name);
+        // Only add content if it's not null
+        if (content != null) {
+            requestData.put("content", content);
+        }
+
+        // Configure RestTemplate to handle JSON properly
+        restTemplate.getMessageConverters().add(new MappingJackson2HttpMessageConverter());
+
+        try {
+            Map<String, Object> response = restTemplate.postForObject(HTTP_URL + "create", requestData, Map.class);
+            if (response!=null) {
+                wsClient.setConnectionErrorHandler(error -> {
+                    Platform.runLater(() -> {
+                        System.err.println("Connection error: " + error);
+
+                        // Add reconnection logic here
+                        if (error.contains("Connection closed")) {
+                            Alert alert = new Alert(Alert.AlertType.WARNING);
+                            alert.setTitle("Connection Issue");
+                            alert.setHeaderText("Connection Lost");
+                            alert.setContentText("Connection to the document server was lost. " +
+                                    "This may happen if too many users are connected simultaneously. " +
+                                    "The application will attempt to reconnect.");
+                            alert.show();
+
+                            // Optional: Implement automatic reconnection attempts
+                            // with exponential backoff
+                        }
+                    });
+                });
+
+                wsClient.connect().thenAccept(connected -> {
+                    if (connected) {
+                        System.out.println("Connected to WebSocket server");
+
+                        wsClient.setDocumentId((String) response.get("documentId"));
+                        System.out.println("Document ID: " + (String) response.get("editorCode"));
+                        editorCodeText = (String) response.get("editorCode");
+                        editorCode.setText(editorCodeText);
+
+                        viewerCodeText = (String) response.get("viewerCode");
+                        viewerCode.setText(viewerCodeText);
+
+                        me = new User( (String) response.get("userId"), (String) response.get("userColor"), true);
+
+                        crdt = CRDT.fromSerialized((List<Map<String,Object>>) response.get("crdt"));
+                        setFileContent(crdt.getText());
+
+                        wsClient.setUser(me);
+                        creatorPanel();
+                        wsClient.subscribeToDocumentUpdates();
+
+                        handleOperation(wsClient);
+                        handleCursorChange(wsClient);
+
+                        UpdateUserList();
+                        getDocumentUsers();
+
+                    } else {
+                        Platform.runLater(() -> System.out.println("Failed to connect to server"));
+                    }
+                }).exceptionally(ex -> {
+                    Platform.runLater(() -> {
+                        System.err.println("Connection failed: " + ex.getMessage());
+                        ex.printStackTrace();
+                    });
+                    return null;
+                });
+
+                Platform.runLater(() -> System.out.println("Document created successfully"));
+            } else {
+                Platform.runLater(() -> showErrorAndClose("Error", "Document Creation Failed",
+                        "Could not create document: " + response, (Stage) rootPane.getScene().getWindow()));
+            }
+        } catch (Exception e) {
+            Platform.runLater(() -> showErrorAndClose("Error", "Document Creation Failed",
+                    "Error: " + e.getMessage(), (Stage) rootPane.getScene().getWindow()));
+        }
     }
 
     private void showErrorAndClose(String title, String header, String content, Stage stageToClose) {
@@ -163,6 +257,33 @@ public class DocumentController {
 
         System.out.println("File content set without triggering operations: " + content);
 
+    }
+
+    private void UpdateUserList(){
+        wsClient.setUserListUpdateHandler(updatedUsers -> {
+            System.out.println("User list update received with " + updatedUsers.size() + " users");
+            Platform.runLater(() -> {
+                Set<User> updatedUserSet = new HashSet<>(updatedUsers);
+                if (!updatedUserSet.equals(users)) {
+                    users.clear();
+                    users.addAll(updatedUserSet);
+                    populateListView();
+                }
+            });
+        });
+    }
+
+    private void getDocumentUsers() {
+        wsClient.getDocumentUsers().thenAccept(userSet -> {
+            Platform.runLater(() -> {
+                users.clear();
+                users.addAll(userSet);
+                populateListView();
+            });
+        }).exceptionally(ex -> {
+            System.err.println("Error getting users: " + ex.getMessage());
+            return null;
+        });
     }
 
     private void populateListView() {
@@ -199,7 +320,7 @@ public class DocumentController {
         userList.setFocusTraversable(false);
     }
 
-    private CRDT crdt;
+
 
     public void fetchDocument(SocketController wsClient) {
         wsClient.getDocumentData().thenAccept(documentData -> {
@@ -423,6 +544,25 @@ public class DocumentController {
         return String.valueOf(System.currentTimeMillis());
     }
 
+    public boolean isCreator() {
+        System.out.println("isCreator: " + me.getId());
+        if (me.getId().equals("1")){
+            isCreator = true;
+            return true;
+        }
+        return false;
+    }
+
+    @FXML
+    public void creatorPanel(){
+        if (isCreator()) {
+            creator.setVisible(true);
+        } else {
+            creator.setVisible(false);
+        }
+    }
+
+
     @FXML
     private void handleUndo(ActionEvent event) {
         if (undoStack.isEmpty()) return;
@@ -460,6 +600,61 @@ public class DocumentController {
             setFileContent(crdt.getText());
         }
     }
+
+
+    @FXML
+    private void handleCopyEditor(ActionEvent event) {
+        String code = editorCode.getText();
+
+        // Get the system clipboard
+        final Clipboard clipboard = Clipboard.getSystemClipboard();
+
+        // Set content to clipboard
+        final ClipboardContent content = new ClipboardContent();
+        content.putString(code);
+        clipboard.setContent(content);
+
+        // Optional: Show feedback to user
+        showFeedback("Editor code copied to clipboard!");
+    }
+
+    @FXML
+    private void handleCopyViewer(ActionEvent event) {
+        String code = viewerCode.getText();
+
+        // Get the system clipboard
+        final Clipboard clipboard = Clipboard.getSystemClipboard();
+
+        // Set content to clipboard
+        final ClipboardContent content = new ClipboardContent();
+        content.putString(code);
+        clipboard.setContent(content);
+
+        // Optional: Show feedback to user
+        showFeedback("Viewer code copied to clipboard!");
+    }
+
+    // Optional helper method for user feedback (using a label, toast notification, etc.)
+    private void showFeedback(String message) {
+        // You can implement this according to your UI
+        // For example, showing a temporary label:
+        //feedbackLabel.setText(message);
+        //
+        // Or showing a short notification:
+         Platform.runLater(() -> {
+             Alert alert = new Alert(Alert.AlertType.INFORMATION);
+             alert.setTitle("Copied");
+             alert.setHeaderText(null);
+             alert.setContentText(message);
+             alert.show();
+
+             // Auto-close after 1.5 seconds
+             PauseTransition delay = new PauseTransition(Duration.seconds(1.5));
+             delay.setOnFinished(e -> alert.close());
+             delay.play();
+         });
+    }
+
 
     @FXML
     private void handleMinimize(ActionEvent event) {

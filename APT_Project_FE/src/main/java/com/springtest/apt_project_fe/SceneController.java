@@ -22,7 +22,6 @@ public class SceneController {
     private Parent root;
 
 
-
     public void switchToSceneNew(ActionEvent event) throws IOException {
         root = FXMLLoader.load(getClass().getResource("newdoc.fxml"));
         stage = (Stage)((Node)event.getSource()).getScene().getWindow();
@@ -31,13 +30,6 @@ public class SceneController {
         stage.show();
     }
 
-    public void switchToSceneMain(ActionEvent event) throws IOException {
-        root = FXMLLoader.load(getClass().getResource("main.fxml"));
-        stage = (Stage)((Node)event.getSource()).getScene().getWindow();
-        scene = new Scene(root);
-        stage.setScene(scene);
-        stage.show();
-    }
     public void switchToSceneBrowser(ActionEvent event) throws IOException {
         root = FXMLLoader.load(getClass().getResource("browser.fxml"));
         stage = (Stage)((Node)event.getSource()).getScene().getWindow();
@@ -53,7 +45,7 @@ public class SceneController {
 
         // Now call getController() on the loader instance
         DocumentController documentController = loader.getController();
-        documentController.setDocumentCode(documentCode);
+        documentController.joinDocument(documentCode);
 
 
         stage = (Stage)((Node)event.getSource()).getScene().getWindow();

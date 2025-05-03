@@ -8,8 +8,10 @@ import org.springframework.messaging.converter.MappingJackson2MessageConverter;
 import org.springframework.messaging.simp.stomp.*;
 import org.springframework.web.socket.client.WebSocketClient;
 import org.springframework.web.socket.client.standard.StandardWebSocketClient;
+import org.springframework.web.socket.client.standard.WebSocketContainerFactoryBean;
 import org.springframework.web.socket.messaging.WebSocketStompClient;
 import org.springframework.web.socket.sockjs.client.SockJsClient;
+import org.springframework.web.socket.sockjs.client.Transport;
 import org.springframework.web.socket.sockjs.client.WebSocketTransport;
 
 import java.lang.reflect.Type;
@@ -55,7 +57,6 @@ public class SocketController {
         WebSocketClient webSocketClient = new SockJsClient(
                 List.of(new WebSocketTransport(new StandardWebSocketClient()))
         );
-
         stompClient = new WebSocketStompClient(webSocketClient);
         stompClient.setMessageConverter(new MappingJackson2MessageConverter());
     }
@@ -158,7 +159,7 @@ public class SocketController {
     /**
      * Subscribes to all relevant document update topics.
      */
-    private void subscribeToDocumentUpdates() {
+    public void subscribeToDocumentUpdates() {
         // Subscribe to user list updates
         stompSession.subscribe("/topic/document/" + documentId + "/users", new StompFrameHandler() {
             @Override
@@ -530,6 +531,10 @@ public class SocketController {
         return documentId;
     }
 
+    public void setDocumentId(String documentId) {
+        this.documentId = documentId;
+    }
+
     public String getUserId() {
         return user.getId();
     }
@@ -544,6 +549,9 @@ public class SocketController {
 
     public User getUser() {
         return user;
+    }
+    public void setUser(User user) {
+        this.user = user;
     }
 
     public Set<User> getUsers() {
