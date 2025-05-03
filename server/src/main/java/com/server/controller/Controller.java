@@ -9,7 +9,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 /**
  * REST Controller that handles document creation
@@ -46,5 +48,23 @@ public class Controller {
         response.put("crdt", document.getCrdt().serialize());
 
         return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Retrieves a document by its unique identifier and returns its CRDT (Conflict-free Replicated Data Type) data.
+     * 
+     * @param documentId The unique identifier of the document to retrieve
+     * @return ResponseEntity containing the document's CRDT serialized data if found, 
+     *         or a 404 Not Found response if the document doesn't exist
+     */
+    @GetMapping("/{documentId}")
+    public ResponseEntity<List<Map<String, Object>>> getDocument(@PathVariable String documentId) {
+        Optional<Document> documentOpt = documentService.getDocumentById(documentId);
+        if (documentOpt.isPresent()) {
+            Document document = documentOpt.get();
+            return ResponseEntity.ok(document.getCrdt().serialize());
+        } else {
+            return ResponseEntity.notFound().build();
+        }
     }
 }

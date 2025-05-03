@@ -66,30 +66,6 @@ public class WebSocketController {
             return errorResponse;
         }
     }
-    
-    /**
-     * Retrieves the full CRDT data of a document.
-     * 
-     * @param documentId The unique identifier of the document
-     * @return Map containing CRDT data or error message if document is not found
-     */
-    @MessageMapping("/document/{documentId}/get")
-    @SendToUser("/queue/get")
-    public List<Map<String, Object>> getDocumentData(@DestinationVariable String documentId) {
-        Optional<Document> documentOpt = documentService.getDocumentById(documentId);
-        
-        if (documentOpt.isPresent()) {
-            Document document = documentOpt.get();
-
-            return document.getCrdt().serialize();
-        } else {
-            List<Map<String, Object>> errorResponse = new ArrayList<>();
-            Map<String,Object> errorMap = new HashMap<>();
-            errorMap.put("error", "Document not found");
-            errorResponse.add(errorMap);
-            return errorResponse;
-        }
-    }
 
     /**
      * Retrieves the list of users currently in a document.
@@ -109,8 +85,6 @@ public class WebSocketController {
             return null;
         }
     }
-
-
 
     /**
      * Handles a CRDT operation (insert or delete) and broadcasts it to all users.
