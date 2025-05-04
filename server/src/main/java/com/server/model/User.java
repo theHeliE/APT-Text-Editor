@@ -25,10 +25,6 @@ public class User {
         return isEditor;
     }
 
-    public Integer getCursorPosition() {
-        return cursorPosition;
-    }
-
     public void setCursorPosition(Integer cursorPosition) {
         this.cursorPosition = (cursorPosition == null) ? -1 : cursorPosition;
     }

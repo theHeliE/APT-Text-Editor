@@ -124,7 +124,7 @@ public class WebSocketController {
                 success = document.getCrdt().insertCharacter(
                         operation.userId(),
                         operation.clock(),
-                        operation.value(),
+                        operation.value().charAt(0),
                         operation.parentId()
                 );
                 System.out.println("Insert success: " + success);
@@ -137,6 +137,15 @@ public class WebSocketController {
                 System.out.println("Attemting to undo delete with nodeId=" + operation.nodeId());
                 success = document.getCrdt().getNodes().get(operation.nodeId()).setDeleted(false);
                 System.out.println("Undo delete success: " + success);
+            }
+            else if ("paste".equals(operation.type())) {
+                for (int i = 0; i < operation.value().length(); i++) {
+                    success |= document.getCrdt().insertCharacter(
+                            operation.userId(),
+                            operation.clock(),
+                            operation.value().charAt(i),
+                            operation.parentId());
+                }
             }
 
             if (success) {
