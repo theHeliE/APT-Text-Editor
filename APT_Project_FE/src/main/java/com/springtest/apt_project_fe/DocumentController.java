@@ -92,6 +92,7 @@ public class DocumentController {
         });
     }
 
+
     public void joinDocument(String documentCode) {
         this.documentCode = documentCode;
 
@@ -1056,8 +1057,8 @@ public class DocumentController {
         ((Stage) ((JFXButton) event.getSource()).getScene().getWindow()).close();
 
         // Add this to exit the application process completely
-        Platform.exit();
-        System.exit(0);
+        //Platform.exit();
+        //System.exit(0);
     }
 
     @FXML

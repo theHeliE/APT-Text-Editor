@@ -9,6 +9,7 @@ import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
+import javafx.stage.StageStyle;
 
 import java.io.IOException;
 
@@ -34,7 +35,6 @@ public class CreateController {
 
     public void switchToSceneFileViewer(ActionEvent event) throws IOException {
         FXMLLoader loader = new FXMLLoader(getClass().getResource("document.fxml"));
-
         // Load the FXML file to get the root node
         root = loader.load();
 
@@ -42,9 +42,11 @@ public class CreateController {
         DocumentController documentController = loader.getController();
         documentController.createDocument(documentNameArea.getText().trim());
 
-        stage = (Stage)((Node)event.getSource()).getScene().getWindow();
-        scene = new Scene(root);
-        stage.setScene(scene);
+        stage = new Stage();
+        stage.setTitle("DocsHub/ " + documentNameArea.getText().trim());
+        stage.initStyle(StageStyle.UNDECORATED);
+        stage.setResizable(false);
+        stage.setScene(new Scene(root));
         stage.show();
     }
 

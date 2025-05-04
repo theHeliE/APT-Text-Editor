@@ -11,6 +11,7 @@ import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.layout.AnchorPane;
 import javafx.stage.Stage;
+import javafx.stage.StageStyle;
 
 import java.awt.*;
 import java.io.IOException;
@@ -48,15 +49,19 @@ public class SceneController {
         documentController.joinDocument(documentCode);
 
 
-        stage = (Stage)((Node)event.getSource()).getScene().getWindow();
-        scene = new Scene(root);
-        stage.setScene(scene);
+        stage = new Stage();
+        stage.setTitle("DocsHub/ " + documentCode);
+        stage.initStyle(StageStyle.UNDECORATED);
+        stage.setResizable(false);
+        stage.setScene(new Scene(root));
         stage.show();
     }
 @FXML
     private void handleClose(ActionEvent event) {
         Stage stage = (Stage) ((JFXButton) event.getSource()).getScene().getWindow();
         stage.close();
+        Platform.exit();
+        System.exit(0);
     }
     private double xOffset = 0;
     private double yOffset = 0;
