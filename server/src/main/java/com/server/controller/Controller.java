@@ -47,6 +47,10 @@ public class Controller {
         response.put("userColor", user.getColor());
         response.put("crdt", document.getCrdt().serialize());
 
+        for (Map<String,Object> x : document.getCrdt().serialize()){
+            System.out.println(x);
+        }
+
         return ResponseEntity.ok(response);
     }
 

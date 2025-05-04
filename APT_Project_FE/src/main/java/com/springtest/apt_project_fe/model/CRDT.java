@@ -236,14 +236,14 @@ public class CRDT {
         inOrderTraversal(root, result);
 
         // Debug logging
-        StringBuilder traversalDebug = new StringBuilder("Document traversal: ");
-        for (CharacterNode node : result) {
-            if (!node.isDeleted()) {
-                traversalDebug.append(node.getValue())
-                        .append("(").append(node.getId()).append(") ");
-            }
-        }
-        System.out.println(traversalDebug.toString());
+//        StringBuilder traversalDebug = new StringBuilder("Document traversal: ");
+//        for (CharacterNode node : result) {
+//            if (!node.isDeleted()) {
+//                traversalDebug.append(node.getValue())
+//                        .append("(").append(node.getId()).append(") ");
+//            }
+//        }
+//        System.out.println(traversalDebug.toString());
 
         return result;
     }

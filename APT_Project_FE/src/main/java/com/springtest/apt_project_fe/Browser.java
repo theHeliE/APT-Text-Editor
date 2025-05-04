@@ -13,6 +13,7 @@ import javafx.stage.StageStyle;
 import javafx.stage.Window;
 import com.jfoenix.controls.JFXButton;
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -40,20 +41,28 @@ public class Browser {
         if (selected == null) return;
 
         try {
-            // read file
-            String content = Files.readString(selected.toPath(), StandardCharsets.UTF_8);
+            // Read file line-by-line to preserve structure
+            StringBuilder contentBuilder = new StringBuilder();
+            try (BufferedReader reader = Files.newBufferedReader(selected.toPath(), StandardCharsets.UTF_8)) {
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    contentBuilder.append(line).append("\n"); // Preserve line structure
+                }
+            }
+            String content = contentBuilder.toString();
+            System.out.println(content);
 
-            // load viewer with absolute path
+            // Load viewer with absolute path
             FXMLLoader loader = new FXMLLoader(
                     getClass().getResource("document.fxml")
             );
             root = loader.load();
 
-            // inject content
+            // Inject content
             DocumentController documentController = loader.getController();
-            documentController.createDocument(selected.getName(),content);
+            documentController.createDocument(selected.getName(), content);
 
-            // show in new window
+            // Show in new window
             stage = new Stage();
             stage.setTitle("DocsHub/ " + selected.getName());
             stage.initStyle(StageStyle.UNDECORATED);
@@ -63,9 +72,10 @@ public class Browser {
 
         } catch (IOException e) {
             e.printStackTrace();
-            // optionally alert the user here
+            // Optionally alert the user here
         }
     }
+
     public void switchToSceneMain(ActionEvent event) throws IOException {
         // Use a fully qualified path with the package name
         root = FXMLLoader.load(getClass().getResource("/com/springtest/apt_project_fe/main.fxml"));

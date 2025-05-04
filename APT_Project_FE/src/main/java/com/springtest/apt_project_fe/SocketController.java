@@ -29,6 +29,7 @@ public class SocketController {
     private WebSocketStompClient stompClient;
     private StompSession stompSession;
     private String documentId;
+    private String documentName;
     private User user;
     Set<User> users = new HashSet<>();
     private boolean isConnected = false;
@@ -140,6 +141,7 @@ public class SocketController {
                 }
 
                 documentId = (String) response.get("documentId");
+                documentName = (String) response.get("documentName");
                 user = new User((String) response.get("userId"), (String) response.get("userColor"), (Boolean) response.get("isEditor"));
                 System.out.println(user.getId() + " " +  user.isEditor() + " joined document " + documentId);
                 // Subscribe to document updates after successful join
@@ -529,6 +531,9 @@ public class SocketController {
 
     public String getDocumentId() {
         return documentId;
+    }
+    public String getDocumentName(){
+        return documentName;
     }
 
     public void setDocumentId(String documentId) {

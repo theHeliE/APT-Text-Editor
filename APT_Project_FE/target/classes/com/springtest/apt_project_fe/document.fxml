@@ -47,11 +47,11 @@
 
             </children>
         </HBox>
-        <JFXButton layoutX="20.0" layoutY="20.0" onAction="#handleUndo" style="-fx-background-color: WHITE;" text="UNDO" AnchorPane.leftAnchor="20.0" AnchorPane.topAnchor="20.0">
+        <JFXButton layoutX="1027.0" layoutY="281.0" onAction="#handleUndo" prefHeight="30.0" prefWidth="120.0" style="-fx-background-color: BLACK;" text="UNDO" textFill="WHITE" AnchorPane.leftAnchor="1027.0" AnchorPane.topAnchor="281.0">
          <font>
             <Font name="Dubai Regular" size="12.0" />
          </font></JFXButton>
-        <JFXButton layoutX="100.0" layoutY="20.0" onAction="#handleRedo" style="-fx-background-color: WHITE;" text="REDO" AnchorPane.leftAnchor="100.0" AnchorPane.topAnchor="20.0">
+        <JFXButton layoutX="1157.0" layoutY="281.0" onAction="#handleRedo" prefHeight="30.0" prefWidth="120.0" style="-fx-background-color: BLACK;" text="REDO" textFill="WHITE" AnchorPane.leftAnchor="1157.0" AnchorPane.topAnchor="281.0">
          <font>
             <Font name="Dubai Regular" size="12.0" />
          </font></JFXButton>
@@ -68,12 +68,12 @@
                   <Font name="Dubai Regular" size="13.0" />
                </font>
             </JFXTextArea>
-            <JFXButton fx:id="copyEditorCode" layoutX="184.0" layoutY="42.0" style="-fx-background-color: BLACK;" text="COPY" textFill="WHITE" onAction="#handleCopyEditor">
+            <JFXButton fx:id="copyEditorCode" layoutX="184.0" layoutY="42.0" onAction="#handleCopyEditor" style="-fx-background-color: BLACK;" text="COPY" textFill="WHITE">
                <font>
                   <Font name="Dubai Regular" size="14.0" />
                </font>
             </JFXButton>
-            <JFXButton fx:id="copyViewerCode" layoutX="184.0" layoutY="131.0" style="-fx-background-color: BLACK;" text="COPY" textFill="WHITE" onAction="#handleCopyViewer">
+            <JFXButton fx:id="copyViewerCode" layoutX="184.0" layoutY="131.0" onAction="#handleCopyViewer" style="-fx-background-color: BLACK;" text="COPY" textFill="WHITE">
                <font>
                   <Font name="Dubai Regular" size="14.0" />
                </font>
@@ -90,5 +90,10 @@
             </Label>
          </children>
       </AnchorPane>
+      <JFXButton layoutX="1027.0" layoutY="318.0" onAction="#handleExport" prefHeight="30.0" prefWidth="247.0" style="-fx-background-color: BLACK;" text="EXPORT" textFill="WHITE">
+         <font>
+            <Font name="Dubai Regular" size="12.0" />
+         </font>
+      </JFXButton>
     </children>
 </AnchorPane>

@@ -51,6 +51,7 @@ public class WebSocketController {
             // Prepare response with documentId and user info
             Map<String, Object> response = new HashMap<>();
             response.put("documentId", document.getId());
+            response.put("documentName", document.getName());
 
             response.put("userId", user.getId());
             response.put("userColor", user.getColor());

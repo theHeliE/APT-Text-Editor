@@ -20,11 +20,17 @@ import javafx.scene.input.Clipboard;
 import javafx.scene.input.ClipboardContent;
 import javafx.scene.layout.AnchorPane;
 import javafx.scene.paint.Color;
+import javafx.stage.FileChooser;
 import javafx.stage.Stage;
+import javafx.stage.Window;
 import javafx.util.Duration;
 import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
 import org.springframework.web.client.RestTemplate;
 
+import java.io.File;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -45,6 +51,7 @@ public class DocumentController {
     private double yOffset = 0;
 
     private String documentCode;
+    private String documentName;
     private User me;
     private Set<User> users = new HashSet<>();
     private CRDT crdt;
@@ -111,9 +118,10 @@ public class DocumentController {
                         return;
                     }
 
-                    fetchDocument(wsClient);
+                    fetchDocument(wsClient.getDocumentId());
                     me = wsClient.getUser();
                     creatorPanel();
+                    documentName = (String) wsClient.getDocumentName();
 
                     if (!me.isEditor()){
                         textArea.setEditable(false);
@@ -198,7 +206,9 @@ public class DocumentController {
                         me = new User( (String) response.get("userId"), (String) response.get("userColor"), true);
 
                         crdt = CRDT.fromSerialized((List<Map<String,Object>>) response.get("crdt"));
-                        setFileContent(crdt.getText());
+                        Platform.runLater(() -> {setFileContent(crdt.getText());});
+
+                        documentName = (String) response.get("documentName");
 
                         wsClient.setUser(me);
                         creatorPanel();
@@ -322,25 +332,44 @@ public class DocumentController {
 
 
 
-    public void fetchDocument(SocketController wsClient) {
-        wsClient.getDocumentData().thenAccept(documentData -> {
-            try {
-                crdt = CRDT.fromSerialized(documentData);
-                Platform.runLater(() -> {
-                    System.out.println("Document fetched: " + crdt.serialize());
-                    setFileContent(crdt.getText());
-                });
-            } catch (Exception e) {
-                Platform.runLater(() -> showErrorAndClose("Error", "Processing Error",
-                        "Could not process document: " + e.getMessage(), (Stage) rootPane.getScene().getWindow()));
-                e.printStackTrace();
+    public void fetchDocument(String documentId) {
+//        wsClient.getDocumentData().thenAccept(documentData -> {
+//            try {
+//                crdt = CRDT.fromSerialized(documentData);
+//                Platform.runLater(() -> {
+//                    System.out.println("Document fetched: " + crdt.serialize());
+//                    setFileContent(crdt.getText());
+//                });
+//            } catch (Exception e) {
+//                Platform.runLater(() -> showErrorAndClose("Error", "Processing Error",
+//                        "Could not process document: " + e.getMessage(), (Stage) rootPane.getScene().getWindow()));
+//                e.printStackTrace();
+//            }
+//        }).exceptionally(ex -> {
+//            Platform.runLater(() -> showErrorAndClose("Error", "Retrieval Failed",
+//                    "Error retrieving document: " + ex.getMessage(), (Stage) rootPane.getScene().getWindow()));
+//            ex.printStackTrace();
+//            return null;
+//        });
+        RestTemplate restTemplate = new RestTemplate();
+        restTemplate.getMessageConverters().add(new MappingJackson2HttpMessageConverter());
+        try {
+            List<Map<String, Object>> response = restTemplate.getForObject(HTTP_URL + documentId, List.class);
+            if (response!=null) {
+                crdt = CRDT.fromSerialized(response);
+                Platform.runLater(() -> {setFileContent(crdt.getText());});
             }
-        }).exceptionally(ex -> {
+        }
+        catch (Exception e) {
             Platform.runLater(() -> showErrorAndClose("Error", "Retrieval Failed",
-                    "Error retrieving document: " + ex.getMessage(), (Stage) rootPane.getScene().getWindow()));
-            ex.printStackTrace();
-            return null;
-        });
+                    "Error retrieving document: " + e.getMessage(), (Stage) rootPane.getScene().getWindow()));
+            e.printStackTrace();
+        }
+
+
+
+
+
     }
 
     public void handleOperation(SocketController wsClient) {
@@ -362,8 +391,10 @@ public class DocumentController {
                                 operation.value(),
                                 operation.parentId()
                         );
+                        System.out.println("inserted character: " + crdt.getNodeMap().get(operation.parentId()).getValue());
                     } else if (operation.type().equals("delete")) {
                         crdt.deleteCharacterById(operation.nodeId());
+                        System.out.println("deleted character: " + operation.nodeId());
                     }
                     else if (operation.type().equals("undoDelete")) {
                         crdt.getNodeMap().get(operation.nodeId()).setDeleted(false);
@@ -441,6 +472,8 @@ public class DocumentController {
                             parentId,
                             insertedChar
                     );
+                    System.out.println("inserted character: " + crdt.getNodeMap().get(operation.parentId()).getValue());
+
                     undoStack.push(operation);
                     redoStack.clear();
 
@@ -598,6 +631,61 @@ public class DocumentController {
             CrdtOperation redoOperation = new CrdtOperation("delete", operation.userId(), operation.clock(), operation.nodeId(), null, null);
             wsClient.sendOperation(redoOperation);
             setFileContent(crdt.getText());
+        }
+    }
+
+    @FXML
+    private void handleExport(ActionEvent event) {
+        // Get the text content from the text area
+        String export = textArea.getText();
+
+        if (export == null || export.trim().isEmpty()) {
+            // Show an alert if there's no content to export
+            Alert alert = new Alert(Alert.AlertType.WARNING);
+            alert.setTitle("Export Warning");
+            alert.setHeaderText("Empty Document");
+            alert.setContentText("Cannot export an empty document.");
+            alert.showAndWait();
+            return;
+        }
+
+        // Create a file chooser dialog
+        FileChooser fileChooser = new FileChooser();
+        fileChooser.setTitle("Save Document");
+
+        // Set extension filter for text files
+        FileChooser.ExtensionFilter extFilter =
+                new FileChooser.ExtensionFilter("Text files (*.txt)", "*.txt");
+        fileChooser.getExtensionFilters().add(extFilter);
+
+        // Set initial file name to the document name (assuming you have it stored)
+        fileChooser.setInitialFileName(documentName);
+
+        // Show save file dialog
+        Window window = textArea.getScene().getWindow();
+        File file = fileChooser.showSaveDialog(window);
+
+        if (file != null) {
+            try {
+                // Write the content to the selected file
+                Files.writeString(file.toPath(), export, StandardCharsets.UTF_8);
+
+                // Show success notification
+                Alert alert = new Alert(Alert.AlertType.INFORMATION);
+                alert.setTitle("Export Successful");
+                alert.setHeaderText("Document Exported");
+                alert.setContentText("Your document has been saved to:\n" + file.getAbsolutePath());
+                alert.showAndWait();
+
+            } catch (IOException e) {
+                // Handle any IO exceptions
+                Alert alert = new Alert(Alert.AlertType.ERROR);
+                alert.setTitle("Export Error");
+                alert.setHeaderText("Failed to Export Document");
+                alert.setContentText("An error occurred while saving the file: " + e.getMessage());
+                alert.showAndWait();
+                e.printStackTrace();
+            }
         }
     }
 
