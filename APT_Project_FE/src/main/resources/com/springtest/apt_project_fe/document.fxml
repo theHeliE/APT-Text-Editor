@@ -22,8 +22,8 @@
                 </Text>
             </center>
         </JFXToolbar>
-
         <JFXTextArea fx:id="textArea" editable="true" layoutX="200.0" layoutY="59.0" prefHeight="730.0" prefWidth="900.0" style="-fx-border-color: LIGHTGRAY; -fx-border-radius: 5px; -fx-padding: 50px; -fx-background-color: WHITE;" wrapText="true" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="270.0" AnchorPane.rightAnchor="270.0" AnchorPane.topAnchor="70.0" />
+        <AnchorPane fx:id="cursorOverlay" layoutX="200.0" layoutY="70.0" mouseTransparent="true" pickOnBounds="false" prefHeight="730.0" prefWidth="740.0" style="-fx-background-color: transparent;" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="270.0" AnchorPane.rightAnchor="270.0" AnchorPane.topAnchor="70.0" />
         <HBox spacing="10.0" AnchorPane.rightAnchor="10.0" AnchorPane.topAnchor="5.0">
             <children>
 
@@ -47,16 +47,8 @@
 
             </children>
         </HBox>
-        <JFXButton layoutX="1027.0" layoutY="281.0" onAction="#handleUndo" prefHeight="30.0" prefWidth="120.0" style="-fx-background-color: BLACK;" text="UNDO" textFill="WHITE" AnchorPane.leftAnchor="1027.0" AnchorPane.topAnchor="281.0">
-         <font>
-            <Font name="Dubai Regular" size="12.0" />
-         </font></JFXButton>
-        <JFXButton layoutX="1157.0" layoutY="281.0" onAction="#handleRedo" prefHeight="30.0" prefWidth="120.0" style="-fx-background-color: BLACK;" text="REDO" textFill="WHITE" AnchorPane.leftAnchor="1157.0" AnchorPane.topAnchor="281.0">
-         <font>
-            <Font name="Dubai Regular" size="12.0" />
-         </font></JFXButton>
         <JFXListView fx:id="userList" prefWidth="258.0" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.topAnchor="70.0" />
-      <AnchorPane fx:id="creator" layoutX="1016.0" layoutY="70.0" prefHeight="200.0" prefWidth="258.0" style="-fx-background-color: WHITE; -fx-background-radius: 1px; -fx-border-color: LIGHTGRAY;" AnchorPane.rightAnchor="0.0">
+      <AnchorPane fx:id="creator" layoutX="1017.0" layoutY="281.0" prefHeight="200.0" prefWidth="258.0" style="-fx-background-color: WHITE; -fx-background-radius: 1px; -fx-border-color: LIGHTGRAY;" AnchorPane.rightAnchor="5.0">
          <children>
             <JFXTextArea fx:id="editorCode" editable="false" focusColor="WHITE" layoutX="20.0" layoutY="37.0" prefHeight="40.0" prefWidth="151.0" style="-fx-background-color: WHite; -fx-border-color: black; -fx-padding: 5px" unFocusColor="WHITE">
                <font>
@@ -90,10 +82,21 @@
             </Label>
          </children>
       </AnchorPane>
-      <JFXButton layoutX="1027.0" layoutY="318.0" onAction="#handleExport" prefHeight="30.0" prefWidth="247.0" style="-fx-background-color: BLACK;" text="EXPORT" textFill="WHITE">
+        <AnchorPane layoutX="1017.0" layoutY="70.0" prefHeight="200.0" prefWidth="258.0" style="-fx-background-color: WHITE; -fx-background-radius: 1px; -fx-border-color: LIGHTGRAY;" AnchorPane.rightAnchor="5.0">
+
+        <JFXButton layoutX="15.0" layoutY="82.0" onAction="#handleUndo" prefHeight="30.0" prefWidth="230.0" style="-fx-background-color: BLACK;" text="UNDO" textFill="WHITE" AnchorPane.leftAnchor="15.0" AnchorPane.topAnchor="82.0">
+            <font>
+                <Font name="Dubai Regular" size="12.0" />
+            </font></JFXButton>
+        <JFXButton layoutX="15.0" layoutY="32.0" onAction="#handleRedo" prefHeight="30.0" prefWidth="230.0" style="-fx-background-color: BLACK;" text="REDO" textFill="WHITE" AnchorPane.leftAnchor="15.0" AnchorPane.topAnchor="32.0">
+            <font>
+                <Font name="Dubai Regular" size="12.0" />
+            </font></JFXButton>
+      <JFXButton layoutX="16.0" layoutY="130.0" onAction="#handleExport" prefHeight="30.0" prefWidth="230.0" style="-fx-background-color: BLACK;" text="EXPORT" textFill="WHITE" AnchorPane.leftAnchor="16.0" AnchorPane.topAnchor="130.0">
          <font>
             <Font name="Dubai Regular" size="12.0" />
          </font>
       </JFXButton>
+        </AnchorPane>
     </children>
 </AnchorPane>

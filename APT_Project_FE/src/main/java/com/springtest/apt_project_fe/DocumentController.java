@@ -14,12 +14,23 @@ import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
+import javafx.geometry.Bounds;
+import javafx.scene.Node;
+import javafx.scene.Parent;
 import javafx.scene.control.Alert;
 import javafx.scene.control.TextArea;
+import javafx.scene.control.Tooltip;
 import javafx.scene.input.Clipboard;
 import javafx.scene.input.ClipboardContent;
 import javafx.scene.layout.AnchorPane;
+import javafx.scene.layout.Pane;
+import javafx.scene.layout.StackPane;
 import javafx.scene.paint.Color;
+import javafx.scene.shape.Rectangle;
+import javafx.scene.text.Font;
+import javafx.scene.text.FontWeight;
+import javafx.scene.text.Text;
+import javafx.scene.text.TextFlow;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 import javafx.stage.Window;
@@ -33,6 +44,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Collectors;
 
 public class DocumentController {
     @FXML private TextArea textArea;
@@ -111,6 +123,7 @@ public class DocumentController {
                 handleCursorChange(wsClient);
 
                 UpdateUserList();
+                cursorUpdate();
 
                 wsClient.joinDocument(documentCode).thenAccept(response -> {
                     if (response.containsKey("error")) {
@@ -216,6 +229,7 @@ public class DocumentController {
 
                         handleOperation(wsClient);
                         handleCursorChange(wsClient);
+                        cursorUpdate();
 
                         UpdateUserList();
                         getDocumentUsers();
@@ -278,10 +292,37 @@ public class DocumentController {
                     users.clear();
                     users.addAll(updatedUserSet);
                     populateListView();
+                    updateUsersAndCleanCursors(updatedUsers);
                 }
             });
         });
     }
+
+    private void updateUsersAndCleanCursors(Set<User> updatedUsers) {
+        // Find users who are no longer in the updated list
+        Set<String> updatedUserIds = updatedUsers.stream()
+                .map(User::getId)
+                .collect(Collectors.toSet());
+
+        // Get current user IDs excluding the updated ones
+        Set<String> removedUserIds = users.stream()
+                .map(User::getId)
+                .filter(id -> !updatedUserIds.contains(id))
+                .collect(Collectors.toSet());
+
+        // Remove cursors for users who left
+        for (String userId : removedUserIds) {
+            removeUserCursor(userId);
+        }
+
+        // Update the users set with the new list
+        users.clear();
+        users.addAll(updatedUsers);
+
+        // Update UI list
+        UpdateUserList();
+    }
+
 
     private void getDocumentUsers() {
         wsClient.getDocumentUsers().thenAccept(userSet -> {
@@ -533,6 +574,263 @@ public class DocumentController {
             }, 50);
         });
     }
+
+    @FXML
+    private AnchorPane cursorOverlay;
+
+
+    private void displayUserCursor(User user, int position) {
+        String markerId = "cursor-" + user.getId();
+
+        try {
+            // Ensure the overlay exists
+            ensureCursorOverlayExists();
+
+            // Get the current text
+            String text = textArea.getText();
+            int safePos = Math.min(position, text.length());
+
+            // Calculate text position data
+            TextPositionInfo posInfo = calculateTextPosition(text, safePos);
+
+            // Create a new cursor indicator
+            Rectangle cursorMarker = new Rectangle(2, textArea.getFont().getSize());
+            cursorMarker.setId(markerId);
+            cursorMarker.setFill(Color.web(user.getColor()));
+
+            // Create a tooltip with the user's ID/name
+            Tooltip tooltip = new Tooltip(user.getId());
+            Tooltip.install(cursorMarker, tooltip);
+
+            // Remove existing cursor for this user if it exists
+            Node existingCursor = userCursors.get(user.getId());
+            if (existingCursor != null) {
+                cursorOverlay.getChildren().remove(existingCursor);
+            }
+
+            // Add the new cursor to the overlay and track it
+            cursorOverlay.getChildren().add(cursorMarker);
+            userCursors.put(user.getId(), cursorMarker);
+
+            // Position the cursor using our precise calculation
+            positionCursorMarker(cursorMarker, posInfo);
+
+        } catch (Exception e) {
+            System.err.println("Error displaying user cursor: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+
+    // Helper class to store text position information
+    private static class TextPositionInfo {
+        int row;
+        int column;
+        String lineText;
+        double xOffset;
+        double yOffset;
+    }
+
+    // Calculate precise text position data
+    private TextPositionInfo calculateTextPosition(String text, int position) {
+        TextPositionInfo info = new TextPositionInfo();
+        info.row = 0;
+        info.column = 0;
+
+        // Handle empty text case
+        if (text.isEmpty()) {
+            info.lineText = "";
+            return info;
+        }
+
+        // Find the row and column
+        int currentLineStart = 0;
+        for (int i = 0; i < position; i++) {
+            if (i < text.length() && text.charAt(i) == '\n') {
+                info.row++;
+                currentLineStart = i + 1;
+                info.column = 0;
+            } else {
+                info.column++;
+            }
+        }
+
+        // Extract the current line text
+        int lineEnd = text.indexOf('\n', currentLineStart);
+        if (lineEnd == -1) {
+            lineEnd = text.length();
+        }
+
+        // Get the text of the current line up to the cursor position
+        int cursorColumnEnd = Math.min(currentLineStart + info.column, text.length());
+        String lineTextUpToCursor = text.substring(currentLineStart, cursorColumnEnd);
+        info.lineText = lineTextUpToCursor;
+
+        return info;
+    }
+
+    // Position the cursor marker using TextFlow for precise measurement
+    private void positionCursorMarker(Rectangle cursorMarker, TextPositionInfo posInfo) {
+        // Create a temporary Text node with the line text up to the cursor
+        Text measuringText = new Text(posInfo.lineText);
+        measuringText.setFont(textArea.getFont());
+
+        // Get the Text layout bounds to determine accurate width
+        double prefWidth = textArea.getWidth() -
+                (textArea.getPadding().getLeft() + textArea.getPadding().getRight() + 20); // Extra padding
+
+        // Create a TextFlow for measurement
+        TextFlow measuringFlow = new TextFlow(measuringText);
+        measuringFlow.setPrefWidth(prefWidth);
+        measuringFlow.setVisible(false);
+
+        // Add to scene temporarily for measurement
+        Pane root = (Pane) textArea.getScene().getRoot();
+        root.getChildren().add(measuringFlow);
+
+        // Force layout
+        measuringFlow.applyCss();
+        measuringFlow.layout();
+
+        // Get text bounds
+        Bounds textBounds = measuringText.getBoundsInParent();
+
+        // Calculate position
+        double lineHeight = textArea.getFont().getSize() * 1.44; // Line height approximation
+        double xPos = textBounds.getWidth() + textArea.getPadding().getLeft() + 2; // Add padding and small offset
+        double yPos = (posInfo.row * lineHeight) + textArea.getPadding().getTop();
+
+        // Apply position
+        AnchorPane.setLeftAnchor(cursorMarker, xPos);
+        AnchorPane.setTopAnchor(cursorMarker, yPos);
+
+        // Clean up
+        root.getChildren().remove(measuringFlow);
+    }
+
+    // Ensure the cursor overlay exists
+    private void ensureCursorOverlayExists() {
+        if (cursorOverlay != null) return;
+
+        // Create overlay
+        cursorOverlay = new AnchorPane();
+        cursorOverlay.setId("cursorOverlay");
+        cursorOverlay.setMouseTransparent(true);
+        cursorOverlay.setStyle("-fx-background-color: transparent;");
+
+        // Get textArea parent
+        Parent parent = textArea.getParent();
+        if (parent instanceof Pane) {
+            Pane parentPane = (Pane) parent;
+
+            // Create a container for text area and overlay
+            StackPane container = new StackPane();
+
+            // Get textArea position and size
+            double x = textArea.getLayoutX();
+            double y = textArea.getLayoutY();
+            double width = textArea.getWidth();
+            double height = textArea.getHeight();
+
+            // Get textArea's scene position
+            parentPane.getChildren().remove(textArea);
+
+            // Add components to container
+            container.getChildren().add(textArea);
+            container.getChildren().add(cursorOverlay);
+
+            // Position container
+            container.setLayoutX(x);
+            container.setLayoutY(y);
+            container.setPrefWidth(width);
+            container.setPrefHeight(height);
+
+            // Add container to parent
+            parentPane.getChildren().add(container);
+
+            // Bind overlay size to textArea
+            cursorOverlay.prefWidthProperty().bind(textArea.widthProperty());
+            cursorOverlay.prefHeightProperty().bind(textArea.heightProperty());
+
+            // Add listener to reposition cursors when text changes
+            textArea.textProperty().addListener((obs, oldText, newText) -> {
+                updateAllCursors();
+            });
+
+            System.out.println("Cursor overlay created successfully");
+        } else {
+            System.err.println("TextArea parent is not a Pane, can't create overlay");
+        }
+    }
+
+    // Map to track user cursors and their positions
+    private Map<String, Node> userCursors = new HashMap<>();
+    private Map<String, Integer> userPositions = new HashMap<>();
+
+    // Update positions for all cursors (e.g., after text change)
+    private void updateAllCursors() {
+        Map<String, Integer> positions = new HashMap<>(userPositions);
+
+        for (Map.Entry<String, Integer> entry : positions.entrySet()) {
+            String userId = entry.getKey();
+            Integer position = entry.getValue();
+
+            // Find user
+            Optional<User> userOpt = users.stream()
+                    .filter(u -> userId.equals(u.getId()))
+                    .findFirst();
+
+            if (userOpt.isPresent()) {
+                // Update cursor position
+                displayUserCursor(userOpt.get(), position);
+            }
+        }
+    }
+
+    // Call this when receiving cursor update
+    private void cursorUpdate() {
+        // Ensure overlay exists
+        ensureCursorOverlayExists();
+
+        wsClient.setCursorUpdateHandler(cursorData -> {
+            Platform.runLater(() -> {
+                // Extract data from the cursor update
+                String userId = (String) cursorData.get("userId");
+                Integer position = (Integer) cursorData.get("position");
+
+                // Skip if it's our own cursor or invalid data
+                if (userId == null || position == null || userId.equals(me.getId())) {
+                    return;
+                }
+
+                // Store position for later updates
+                userPositions.put(userId, position);
+
+                // Find the user by ID
+                Optional<User> optionalUser = users.stream()
+                        .filter(user -> userId.equals(user.getId()))
+                        .findFirst();
+
+                if (optionalUser.isPresent()) {
+                    User user = optionalUser.get();
+
+                    // Create or update a cursor marker for this user
+                    displayUserCursor(user, position);
+                }
+            });
+        });
+    }
+
+    // Remove a user's cursor
+    public void removeUserCursor(String userId) {
+        Node cursor = userCursors.remove(userId);
+        userPositions.remove(userId);
+
+        if (cursor != null && cursorOverlay != null) {
+            cursorOverlay.getChildren().remove(cursor);
+        }
+    }
+
 
     private void handleLeaving(SocketController wsClient) {
         wsClient.disconnect();
