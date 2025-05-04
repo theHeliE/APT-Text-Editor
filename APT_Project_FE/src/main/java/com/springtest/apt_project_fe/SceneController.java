@@ -48,7 +48,6 @@ public class SceneController {
         DocumentController documentController = loader.getController();
         documentController.joinDocument(documentCode);
 
-
         stage = new Stage();
         stage.setTitle("DocsHub/ " + documentCode);
         stage.initStyle(StageStyle.UNDECORATED);
