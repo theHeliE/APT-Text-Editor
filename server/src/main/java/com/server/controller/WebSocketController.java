@@ -117,34 +117,21 @@ public class WebSocketController {
 
             // Apply the operation based on its type
             if ("insert".equals(operation.type())) {
-                System.out.println("Attempting insert with: userId=" + operation.userId() +
-                        ", clock=" + operation.clock() +
-                        ", value=" + operation.value() +
-                        ", parentId=" + operation.parentId());
-                success = document.getCrdt().insertCharacter(
-                        operation.userId(),
-                        operation.clock(),
-                        operation.value().charAt(0),
-                        operation.parentId()
-                );
-                System.out.println("Insert success: " + success);
-            } else if ("delete".equals(operation.type())) {
-                System.out.println("Attempting delete with nodeId=" + operation.nodeId());
-                success = document.getCrdt().deleteCharacterById(operation.nodeId());
-                System.out.println("Delete success: " + success);
-            }
-            else if ("undoDelete".equals(operation.type())) {
-                System.out.println("Attemting to undo delete with nodeId=" + operation.nodeId());
-                success = document.getCrdt().getNodes().get(operation.nodeId()).setDeleted(false);
-                System.out.println("Undo delete success: " + success);
-            }
-            else if ("paste".equals(operation.type())) {
                 for (int i = 0; i < operation.value().length(); i++) {
                     success |= document.getCrdt().insertCharacter(
                             operation.userId(),
                             operation.clock(),
                             operation.value().charAt(i),
                             operation.parentId());
+                }
+            } else if ("delete".equals(operation.type())) {
+                for (String nodeId : operation.nodeId()) {
+                    success |= document.getCrdt().deleteCharacterById(nodeId);
+                }
+            }
+            else if ("undoDelete".equals(operation.type())) {
+                for (String nodeId : operation.nodeId()) {
+                    success |= document.getCrdt().getNodes().get(nodeId).setDeleted(false);
                 }
             }
 
