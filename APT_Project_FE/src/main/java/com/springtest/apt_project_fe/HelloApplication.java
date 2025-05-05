@@ -17,8 +17,8 @@ public class HelloApplication extends Application {
         stage.setTitle("DocsHub");
         stage.initStyle(StageStyle.UNDECORATED);
         stage.setResizable(false);
-        Image fifi = new Image(getClass().getResource("/images/3ef3ef.jpg").toExternalForm());
-        stage.getIcons().add(fifi);
+        Image icon = new Image(getClass().getResource("/images/document.png").toExternalForm());
+        stage.getIcons().add(icon);
         stage.setScene(scene);
         stage.show();
     }

@@ -241,19 +241,24 @@ public class SocketController {
                         String type = (String) map.get("type");
                         String userId = (String) map.get("userId");
                         String clock = (String) map.get("clock");
-                        String nodeId = (String) map.get("nodeId");
+
+                        List<String> nodeIdList = (List<String>) map.get("nodeId");
+                        String[] nodeId = nodeIdList.toArray(new String[0]);
+
                         String parentId = (String) map.get("parentId");
+                        String value = (String) map.get("value");
+
 
                         // Handle the value field (might be null or need conversion)
-                        Character value = null;
-                        Object rawValue = map.get("value");
-                        if (rawValue != null) {
-                            if (rawValue instanceof String && !((String) rawValue).isEmpty()) {
-                                value = ((String) rawValue).charAt(0);
-                            } else if (rawValue instanceof Character) {
-                                value = (Character) rawValue;
-                            }
-                        }
+//                        Character value = null;
+//                        Object rawValue = map.get("value");
+//                        if (rawValue != null) {
+//                            if (rawValue instanceof String && !((String) rawValue).isEmpty()) {
+//                                value = ((String) rawValue).charAt(0);
+//                            } else if (rawValue instanceof Character) {
+//                                value = (Character) rawValue;
+//                            }
+//                        }
 
                         // Create the CrdtOperation
                         CrdtOperation operation = new CrdtOperation(

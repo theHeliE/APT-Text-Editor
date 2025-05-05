@@ -117,20 +117,18 @@ public class WebSocketController {
 
             // Apply the operation based on its type
             if ("insert".equals(operation.type())) {
-                for (int i = 0; i < operation.value().length(); i++) {
-                    success |= document.getCrdt().insertCharacter(
+                    success = document.getCrdt().insertCharacter(
                             operation.userId(),
                             operation.clock(),
-                            operation.value().charAt(i),
+                            operation.value(),
                             operation.parentId());
-                }
             } else if ("delete".equals(operation.type())) {
-                for (String nodeId : operation.nodeId()) {
+                for (String nodeId : operation.nodeId()){
                     success |= document.getCrdt().deleteCharacterById(nodeId);
                 }
             }
             else if ("undoDelete".equals(operation.type())) {
-                for (String nodeId : operation.nodeId()) {
+                for(String nodeId : operation.nodeId()){
                     success |= document.getCrdt().getNodes().get(nodeId).setDeleted(false);
                 }
             }

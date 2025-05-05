@@ -25,20 +25,37 @@ public class CRDT {
      * @param parentId the ID of the parent node
      * @return true if the insertion was successful, false otherwise
      */
-    public boolean insertCharacter(String userId, String clock, Character value, String parentId) {
+    public boolean insertCharacter(String userId, String clock, String value, String parentId) {
         CharacterNode parentNode = nodeMap.get(parentId);
 
+        System.out.println("Inserting character: " + value + " at " + clock + " by " + userId + " in " + parentId);
+
         if (userId == null || clock == null || value == null || parentNode == null) {
+            System.out.println(userId == null);
+            System.out.println(clock == null);
+            System.out.println(value == null);
+            System.out.println(parentNode == null);
             return false;
         }
+
+        System.out.println("if 1 passed :D ");
 
         if (userId.isEmpty() || clock.isEmpty()) {
             return false;
         }
+        System.out.println("if 2 passed :DDDDD ");
 
-        CharacterNode newNode = new CharacterNode(userId, clock, value, parentId);
-        parentNode.addChild(newNode);
-        nodeMap.put(newNode.getId(), newNode);
+        long baseTime = Long.valueOf(clock);
+
+        for (int i =0; i< value.length();i++){
+            String c = String.valueOf(baseTime + i);
+            CharacterNode newNode = new CharacterNode(userId, c, value.charAt(i), parentNode.getId());
+            parentNode.addChild(newNode);
+            nodeMap.put(newNode.getId(), newNode);
+            parentNode = newNode;
+        }
+
+
         return true;
     }
 
@@ -49,6 +66,7 @@ public class CRDT {
      */
     public boolean deleteCharacterById(String nodeId) {
         CharacterNode nodeToDelete = nodeMap.get(nodeId);
+        System.out.println("node to delete: " + nodeToDelete);
 
         if (nodeToDelete == null || nodeToDelete == root) {
             return false;
@@ -126,8 +144,8 @@ public class CRDT {
 
             // Create and add the character
             if (value != null && value.length() > 0) {
-                char charValue = value.charAt(0);
-                crdt.insertCharacter(userId, clock, charValue, parentId);
+                //char charValue = value.charAt(0);
+                crdt.insertCharacter(userId, clock, value, parentId);
 
                 // If the node was deleted, mark it as deleted
                 if (deleted) {
@@ -149,7 +167,7 @@ public class CRDT {
      * @param clock the timestamp representing the real clock time
      * @return the ID of the newly inserted node
      */
-    public String insertCharacterAt(String userId, int position, char value, String clock) {
+    public String[] insertCharacterAt(String userId, int position, String value, String clock) {
         if (position < 0) {
             throw new IllegalArgumentException("Position cannot be negative");
         }
@@ -170,17 +188,18 @@ public class CRDT {
         }
 
         // Create new node with the determined parent
-        CharacterNode newNode = new CharacterNode(userId, clock, value, parentNode.getId());
+        long baseTime = Long.valueOf(clock);
+        String[] nodeIds = new String[value.length()];
 
-        // Add to parent's children
-        parentNode.addChild(newNode);
-        nodeMap.put(newNode.getId(), newNode);
-
-        // Debug - log what we're doing
-        System.out.println("Inserting '" + value + "' with parent '" +
-                parentNode.getValue() + "' (ID: " + parentNode.getId() + ")");
-
-        return newNode.getId();
+        for (int i =0; i< value.length();i++){
+            String c = String.valueOf(baseTime + i);
+            CharacterNode newNode = new CharacterNode(userId, c, value.charAt(i), parentNode.getId());
+            nodeIds[i] = newNode.getId();
+            parentNode.addChild(newNode);
+            nodeMap.put(newNode.getId(), newNode);
+            parentNode = newNode;
+        }
+        return nodeIds;
     }
 
 

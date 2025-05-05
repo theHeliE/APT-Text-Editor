@@ -24,7 +24,7 @@ public class CRDT {
      * @param parentId the ID of the parent node
      * @return true if the insertion was successful, false otherwise
      */
-    public boolean insertCharacter(String userId, String clock, Character value, String parentId) {
+    public boolean insertCharacter(String userId, String clock, String value, String parentId) {
         CharacterNode parentNode = nodeMap.get(parentId);
 
         System.out.println("Inserting character: " + value + " at " + clock + " by " + userId + " in " + parentId);
@@ -44,9 +44,17 @@ public class CRDT {
         }
         System.out.println("if 2 passed :DDDDD ");
 
-        CharacterNode newNode = new CharacterNode(userId, clock, value, parentId);
-        parentNode.addChild(newNode);
-        nodeMap.put(newNode.getId(), newNode);
+        long baseTime = Long.valueOf(clock);
+
+        for (int i =0; i< value.length();i++){
+            String c = String.valueOf(baseTime + i);
+            CharacterNode newNode = new CharacterNode(userId, c, value.charAt(i), parentNode.getId());
+            parentNode.addChild(newNode);
+            nodeMap.put(newNode.getId(), newNode);
+            parentNode = newNode;
+        }
+
+
         return true;
     }
 
